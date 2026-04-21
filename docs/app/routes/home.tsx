@@ -53,6 +53,8 @@ export default function Home() {
       setBrowser("Firefox");
     } else if (userAgent.includes("safari") && !userAgent.includes("chrome")) {
       setBrowser("Safari");
+    } else if (userAgent.includes("ladybird")) {
+      setBrowser("Ladybird");
     } else { // default to chrome (since that's the browser that most people use)
       
     }
