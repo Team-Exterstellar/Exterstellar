@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import logo from "/ExterstellarLogo.png";
-import { Link } from "react-router";
+import { motion } from "motion/react";
 
 export function meta() {
   return [
@@ -67,13 +67,46 @@ export default function Home() {
       <div id="stars2"/>
       <div id="stars3"/>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center my-32">
-        <div className="flex justify-end pr-[6dvw] appear-1000">
-          <button>Install for {browser}</button>
-        </div>
-        <img src={logo} alt="Extersteller Logo" className="w-[40dvw] h-auto shrink-0 appear-500" />
-        <div className="flex justify-start pl-[6dvw] appear-1000">
-          <a href="https://github.com/Team-Exterstellar/Exterstellar" className="btn">View Source</a>
-        </div>
+        <motion.div
+          initial={{opacity: 0, y: 40}}
+          whileInView={{opacity: 1, y: 0}}
+          transition={{duration: 1.0, delay: 1.0}}
+          viewport={{once: true}}
+          className="flex justify-end pr-[6dvw]"
+        >
+          <motion.button
+            whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
+            whileTap={{scale: 1}}
+            transition={{duration: 0.3, ease: "easeInOut"}}
+          >
+            Install for {browser}
+          </motion.button>
+        </motion.div>
+        <motion.img
+          src={logo}
+          alt="Exterstellar Logo"
+          className="w-[40dvw] h-auto shrink-0"
+          initial={{opacity: 0, y: 40}}
+          whileInView={{opacity: 1, y: 0}}
+          transition={{duration: 1.0}}
+          viewport={{once: true}}
+        />
+        <motion.div
+          initial={{opacity: 0, y: 40}}
+          whileInView={{opacity: 1, y: 0}}
+          transition={{duration: 1.0, delay: 1.0}}
+          viewport={{once: true}}
+          className="flex justify-start pl-[6dvw]"
+        >
+          <motion.a
+            whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
+            whileTap={{scale: 1}}
+            transition={{duration: 0.3, ease: "easeInOut"}}
+            href="https://github.com/Team-Exterstellar/Exterstellar"
+            className="btn"
+            target="_blank"
+          >View Source</motion.a>
+        </motion.div>
       </div>
     </div>
   );

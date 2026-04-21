@@ -19,26 +19,5 @@ button, .btn {
   background: var(--color-gray-900);
   padding: 0.5rem 1rem;
   font-size: clamp(12px, 1.2vw, 48px);
-  transition: all 300ms ease;
   border: solid var(--color-gray-600) 2px;
-}
-
-button:hover, .btn:hover {
-  background: var(--color-white);
-  color: var(--color-black);
-  border: solid transparent 2px;
-}
-
-.appear-500 {
-  opacity: 0;
-  animation: 2s appear 500ms forwards;
-}
-.appear-1000 {
-  opacity: 0;
-  animation: 2s appear 1000ms forwards;
-}
-
-@keyframes appear {
-  0% {opacity: 0;}
-  100% {opacity: 1;}
 }
