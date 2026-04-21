@@ -31,7 +31,7 @@ export default function Home() {
       body {
         overflow-x: hidden;
       }
-      #stars  {width:1px; height:1px; background:transparent; box-shadow:${small}; animation: animStar 50s linear infinite;}
+      #stars {width:1px; height:1px; background:transparent; box-shadow:${small}; animation: animStar 50s linear infinite;}
       #stars2 {width:2px; height:2px; background:transparent; box-shadow:${medium}; animation: animStar 100s linear infinite;}
       #stars3 {width:3px; height:3px; background:transparent; box-shadow:${big}; animation: animStar 150s linear infinite;}
       #stars::after {content: ""; position:absolute; top:2000px; width:1px; height:1px; background:transparent; box-shadow:${small};}
