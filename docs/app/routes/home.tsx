@@ -94,7 +94,7 @@ export default function Home() {
         <motion.div
           initial={{opacity: 0, x: 10}}
           whileInView={{opacity: 1, x: 0}}
-          transition={{duration: 1.0, delay: 1.0}}
+          transition={{duration: 1.0, delay: 1.5}}
           viewport={{once: true}}
           className="flex justify-start pl-[6dvw]"
         >
