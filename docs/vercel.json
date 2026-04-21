@@ -1,6 +1,12 @@
 {
-  "buildCommand": "npm install && npm run build",
   "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build/client"
+      }
+    },
     {
       "src": "build/server/index.js",
       "use": "@vercel/node"
