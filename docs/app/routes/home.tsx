@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import logo from "/ExterstellarLogo.png";
 
 export function meta() {
@@ -18,6 +18,8 @@ function multipleBoxShadow(n: number): string {
 }
 
 export default function Home() {
+  const [browser, setBrowser] = useState("Chrome");
+
   useEffect(() => {
     const small = multipleBoxShadow(700);
     const medium = multipleBoxShadow(200);
@@ -45,6 +47,17 @@ export default function Home() {
     return () => document.getElementById("stars-style")?.remove();
   }, []);
 
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes("firefox")) { // firefox
+      setBrowser("Firefox");
+    } else if (userAgent.includes("safari") || userAgent.includes("AppleWebKit")) { // safari
+      setBrowser("Safari");
+    } else { // default to chrome (since that's the browser that most people use)
+      
+    }
+  }, []);
+
   return (
     <div className="flex flex-col">
       <div id="stars"/>
@@ -52,7 +65,7 @@ export default function Home() {
       <div id="stars3"/>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center my-32">
         <div className="flex justify-end pr-[6dvw] appear-1000">
-          <button>Install for (Browser)</button>
+          <button>Install for {browser}</button>
         </div>
         <img src={logo} alt="Extersteller Logo" className="w-[40dvw] h-auto shrink-0 appear-500" />
         <div className="flex justify-start pl-[6dvw] appear-1000">
