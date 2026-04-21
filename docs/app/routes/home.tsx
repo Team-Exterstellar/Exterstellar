@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import logo from "/ExterstellarLogo.png";
+import { Link } from "react-router";
 
 export function meta() {
   return [
@@ -71,7 +72,7 @@ export default function Home() {
         </div>
         <img src={logo} alt="Extersteller Logo" className="w-[40dvw] h-auto shrink-0 appear-500" />
         <div className="flex justify-start pl-[6dvw] appear-1000">
-          <button>View Source</button>
+          <a href="https://github.com/Team-Exterstellar/Exterstellar" className="btn">View Source</a>
         </div>
       </div>
     </div>
