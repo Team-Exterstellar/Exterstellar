@@ -23,7 +23,7 @@ button, .btn {
   border: solid var(--color-gray-600) 2px;
 }
 
-button:hover {
+button:hover, .btn:hover {
   background: var(--color-white);
   color: var(--color-black);
   border: solid transparent 2px;
