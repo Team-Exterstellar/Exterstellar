@@ -1,11 +1,16 @@
 {
-  "builds": [
-    {
-      "src": "build/server/index.js",
-      "use": "@vercel/node"
+  "buildCommand": "npm run build",
+  "outputDirectory": "build/client",
+  "functions": {
+    "build/server/index.js": {
+      "runtime": "@vercel/node"
     }
-  ],
+  },
   "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "build/server/index.js"
