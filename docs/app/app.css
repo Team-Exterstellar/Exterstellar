@@ -21,3 +21,8 @@ button, .btn {
   font-size: clamp(12px, 1.2vw, 48px);
   border: solid var(--color-gray-600) 2px;
 }
+
+a {
+  text-decoration: underline;
+  text-underline-offset: 20%;
+}

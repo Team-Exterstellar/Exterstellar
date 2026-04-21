@@ -66,47 +66,56 @@ export default function Home() {
       <div id="stars"/>
       <div id="stars2"/>
       <div id="stars3"/>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center my-32">
-        <motion.div
-          initial={{opacity: 0, x: -10}}
-          whileInView={{opacity: 1, x: 0}}
-          transition={{duration: 1.0, delay: 1.0}}
-          viewport={{once: true}}
-          className="flex justify-end pr-[6dvw]"
-        >
-          <motion.button
-            whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
-            whileTap={{scale: 1}}
-            transition={{duration: 0.3, ease: "easeInOut"}}
-          >
-            Install for {browser}
-          </motion.button>
-        </motion.div>
-        <motion.img
-          src={logo}
-          alt="Exterstellar Logo"
-          className="w-[40dvw] h-auto shrink-0"
-          initial={{opacity: 0, y: 40}}
+      <div className="flex flex-col gap-8 my-32">
+        <motion.p
+          initial={{opacity: 0, y: -10}}
           whileInView={{opacity: 1, y: 0}}
           transition={{duration: 1.0}}
           viewport={{once: true}}
-        />
-        <motion.div
-          initial={{opacity: 0, x: 10}}
-          whileInView={{opacity: 1, x: 0}}
-          transition={{duration: 1.0, delay: 1.5}}
-          viewport={{once: true}}
-          className="flex justify-start pl-[6dvw]"
-        >
-          <motion.a
-            whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
-            whileTap={{scale: 1}}
-            transition={{duration: 0.3, ease: "easeInOut"}}
-            href="https://github.com/Team-Exterstellar/Exterstellar"
-            className="btn"
-            target="_blank"
-          >View Source</motion.a>
-        </motion.div>
+          className="text-center"
+        >Brought to you by <a href="https://flux3tor.xyz/" target="_blank">Flux3tor</a> & <a href="https://hackclub.enterprise.slack.com/archives/C08RSTCKW2X" target="_blank">Sabio</a>!</motion.p>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+          <motion.div
+            initial={{opacity: 0, x: -10}}
+            whileInView={{opacity: 1, x: 0}}
+            transition={{duration: 1.0, delay: 1.0}}
+            viewport={{once: true}}
+            className="flex justify-end pr-[6dvw]"
+          >
+            <motion.button
+              whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
+              whileTap={{scale: 1}}
+              transition={{duration: 0.3, ease: "easeInOut"}}
+            >
+              Install for {browser}
+            </motion.button>
+          </motion.div>
+          <motion.img
+            src={logo}
+            alt="Exterstellar Logo"
+            className="w-[40dvw] h-auto shrink-0"
+            initial={{opacity: 0, y: 40}}
+            whileInView={{opacity: 1, y: 0}}
+            transition={{duration: 1.0, delay: 0.5}}
+            viewport={{once: true}}
+          />
+          <motion.div
+            initial={{opacity: 0, x: 10}}
+            whileInView={{opacity: 1, x: 0}}
+            transition={{duration: 1.0, delay: 1.5}}
+            viewport={{once: true}}
+            className="flex justify-start pl-[6dvw]"
+          >
+            <motion.a
+              whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
+              whileTap={{scale: 1}}
+              transition={{duration: 0.3, ease: "easeInOut"}}
+              href="https://github.com/Team-Exterstellar/Exterstellar"
+              className="btn no-underline!"
+              target="_blank"
+            >View Source</motion.a>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
