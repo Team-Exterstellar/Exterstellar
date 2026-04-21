@@ -1,8 +1,7 @@
 import { useEffect } from "react";
-import type { Route } from "./+types/home";
-import logo from "/ExterstellarLogo.svg";
+import logo from "/ExterstellarLogo.png";
 
-export function meta({}: Route.MetaArgs) {
+export function meta() {
   return [
     { title: "Exterstellar" },
     { name: "description", content: "A QoL-focused browser extension for Stardance." },
