@@ -68,8 +68,8 @@ export default function Home() {
       <div id="stars3"/>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center my-32">
         <motion.div
-          initial={{opacity: 0, y: 40}}
-          whileInView={{opacity: 1, y: 0}}
+          initial={{opacity: 0, x: -10}}
+          whileInView={{opacity: 1, x: 0}}
           transition={{duration: 1.0, delay: 1.0}}
           viewport={{once: true}}
           className="flex justify-end pr-[6dvw]"
@@ -92,8 +92,8 @@ export default function Home() {
           viewport={{once: true}}
         />
         <motion.div
-          initial={{opacity: 0, y: 40}}
-          whileInView={{opacity: 1, y: 0}}
+          initial={{opacity: 0, x: 10}}
+          whileInView={{opacity: 1, x: 0}}
           transition={{duration: 1.0, delay: 1.0}}
           viewport={{once: true}}
           className="flex justify-start pl-[6dvw]"
