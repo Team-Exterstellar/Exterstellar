@@ -1,15 +1,15 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "build/client",
-  "functions": {
-    "build/server/index.js": {
-      "runtime": "@vercel/node"
+  "buildCommand": "npm install && npm run build",
+  "builds": [
+    {
+      "src": "build/server/index.js",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "dest": "/build/client/assets/$1"
     },
     {
       "src": "/(.*)",
