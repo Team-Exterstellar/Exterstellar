@@ -19,7 +19,10 @@ function multipleBoxShadow(n: number): string {
 }
 
 export default function Home() {
-  const [browser, setBrowser] = useState("Chrome");
+  const [browser, setBrowser] = useState({
+    name: "Chrome",
+    disabled: false
+  });
 
   useEffect(() => {
     const small = multipleBoxShadow(700);
@@ -51,11 +54,11 @@ export default function Home() {
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.includes("firefox")) { // firefox
-      setBrowser("Firefox");
+      setBrowser({name: "Firefox", disabled: false});
     } else if (userAgent.includes("safari") && !userAgent.includes("chrome")) {
-      setBrowser("Safari");
+      setBrowser({name: "Safari", disabled: true});
     } else if (userAgent.includes("ladybird")) {
-      setBrowser("Ladybird");
+      setBrowser({name: "Ladybird", disabled: true});
     } else { // default to chrome (since that's the browser that most people use)
       
     }
@@ -83,11 +86,13 @@ export default function Home() {
             className="flex justify-end pr-[6dvw]"
           >
             <motion.button
-              whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
-              whileTap={{scale: 1}}
+              whileHover={!browser.disabled ? {scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"} : {}}
+              whileTap={!browser.disabled ? {scale: 0.95} : {}}
               transition={{duration: 0.3, ease: "easeInOut"}}
+              disabled={browser.disabled}
+              className={browser.disabled ? "opacity-50! cursor-not-allowed!" : ""}
             >
-              Install for {browser}
+              {browser.disabled ? `Unavailable for ${browser.name}` : `Install for ${browser.name}`}
             </motion.button>
           </motion.div>
           <motion.img
