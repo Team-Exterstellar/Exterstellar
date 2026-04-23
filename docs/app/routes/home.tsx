@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import logo from "/ExterstellarLogo.png";
 import { motion } from "motion/react";
+import logo from "/ExterstellarLogo.png";
+import MobileParserModule from "device-detector-js/dist/parsers/device/mobiles.js";
+const MobileParser = (MobileParserModule as any).default;
 
 export function meta() {
   return [
@@ -53,6 +55,13 @@ export default function Home() {
 
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
+    // check if the user is on mobile first
+    const result = new MobileParser().parse(userAgent);
+    if (result && result.type) {
+      setBrowser({name: "Mobile", disabled: true});
+      return;
+    }
+    
     if (userAgent.includes("firefox")) { // firefox
       setBrowser({name: "Firefox", disabled: false});
     } else if (userAgent.includes("safari") && !userAgent.includes("chrome")) {
