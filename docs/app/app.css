@@ -1,16 +1,13 @@
 @import "tailwindcss";
-
 @theme {
   --font-sans: "Iosevka Charon Mono", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
-
 html,
 body {
   background-color: var(--color-gray-950);
   color: var(--color-white);
 }
-
 button, .btn {
   cursor: pointer;
   background: var(--color-gray-900);
@@ -18,8 +15,43 @@ button, .btn {
   font-size: clamp(12px, 1.2vw, 48px);
   border: solid var(--color-gray-600) 2px;
 }
-
 a {
   text-decoration: underline;
   text-underline-offset: 20%;
+}
+#stars, #stars2, #stars3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+#stars {
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  animation: animStar 50s linear infinite;
+}
+#stars2 {
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  animation: animStar 100s linear infinite;
+}
+#stars3 {
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  animation: animStar 150s linear infinite;
+}
+#stars::after, #stars2::after, #stars3::after {
+  content: "";
+  position: fixed;
+  top: 2000px;
+  left: 0;
+}
+#stars::after {width: 1px; height: 1px; background: transparent;}
+#stars2::after {width: 2px; height: 2px; background: transparent;}
+#stars3::after {width: 3px; height: 3px; background: transparent;}
+@keyframes animStar {
+  from {transform: translateY(0px);}
+  to {transform: translateY(-2000px);}
 }

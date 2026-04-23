@@ -39,20 +39,12 @@ export default function Home() {
     const style = document.createElement("style");
     style.id = "stars-style";
     style.textContent = `
-      html, body {height: 100%; margin: 0;}
-      body {
-        overflow-x: hidden;
-      }
-      #stars {width:1px; height:1px; background:transparent; box-shadow:${small}; animation: animStar 50s linear infinite;}
-      #stars2 {width:2px; height:2px; background:transparent; box-shadow:${medium}; animation: animStar 100s linear infinite;}
-      #stars3 {width:3px; height:3px; background:transparent; box-shadow:${big}; animation: animStar 150s linear infinite;}
-      #stars::after {content: ""; position:absolute; top:2000px; width:1px; height:1px; background:transparent; box-shadow:${small};}
-      #stars2::after {content: ""; position:absolute; top:2000px; width:2px; height:2px; background:transparent; box-shadow:${medium};}
-      #stars3::after {content: ""; position:absolute; top:2000px; width:3px; height:3px; background:transparent; box-shadow:${big};}
-      @keyframes animStar {
-        from {transform: translateY(0px);}
-        to {transform: translateY(-2000px);}
-      }
+      #stars {box-shadow: ${small};}
+      #stars2 {box-shadow: ${medium};}
+      #stars3 {box-shadow: ${big};}
+      #stars::after {box-shadow: ${small};}
+      #stars2::after {box-shadow: ${medium};}
+      #stars3::after {box-shadow: ${big};}
     `;
     document.head.appendChild(style);
     return () => document.getElementById("stars-style")?.remove();
@@ -103,9 +95,11 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <div id="stars"/>
-      <div id="stars2"/>
-      <div id="stars3"/>
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div id="stars"/>
+        <div id="stars2"/>
+        <div id="stars3"/>
+      </div>
       <div className="flex flex-col gap-8 my-32">
         <motion.p
           initial={{opacity: 0, y: -10}}
