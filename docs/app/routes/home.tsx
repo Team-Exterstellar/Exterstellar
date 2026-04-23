@@ -25,6 +25,9 @@ export default function Home() {
     name: "Chrome",
     disabled: false
   });
+  const [logoSrc, setLogoSrc] = useState(logo);
+
+  let meClicks = 0;
 
   useEffect(() => {
     const small = multipleBoxShadow(700);
@@ -73,6 +76,16 @@ export default function Home() {
     }
   }, []);
 
+  function monopolyEasteregg() {
+    if (meClicks >= 5) {
+      setLogoSrc("/monopolies/StardanceUtilsLogoReal.png");
+      meClicks -= 1;
+    } else {
+      setLogoSrc("/ExterstellarLogo.png");
+      meClicks += 1;
+    }
+  }
+
   return (
     <div className="flex flex-col">
       <div id="stars"/>
@@ -105,13 +118,15 @@ export default function Home() {
             </motion.button>
           </motion.div>
           <motion.img
-            src={logo}
+            src={logoSrc}
             alt="Exterstellar Logo"
             className="w-[40dvw] h-auto shrink-0"
             initial={{opacity: 0, y: 40}}
             whileInView={{opacity: 1, y: 0}}
             transition={{duration: 1.0, delay: 0.5}}
             viewport={{once: true}}
+            onClick={monopolyEasteregg}
+            id="exterstellarLogo"
           />
           <motion.div
             initial={{opacity: 0, x: 10}}
