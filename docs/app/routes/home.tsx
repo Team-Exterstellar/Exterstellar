@@ -130,6 +130,14 @@ export default function Home() {
             >View Source</motion.a>
           </motion.div>
         </div>
+        <motion.p
+          initial={{opacity: 0, y: -10}}
+          whileInView={{opacity: 1, y: 0}}
+          transition={{duration: 1.0, delay: 2.0}}
+          viewport={{once: true}}
+          className="text-center mx-[20dvw]"
+        >Exterstellar is a QoL-focused browser extension for Stardance. Join <a href="https://hackclub.enterprise.slack.com/archives/C0ATUJ6703G" target="_blank">#exterstellar</a> on 
+        Slack to stay up to date with the latest news and updates!</motion.p>
       </div>
     </div>
   );
