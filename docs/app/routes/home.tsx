@@ -100,7 +100,7 @@ export default function Home() {
         <div id="stars2"/>
         <div id="stars3"/>
       </div>
-      <div className="flex flex-col gap-8 my-32">
+      <div className="flex flex-col gap-8 min-h-screen justify-center">
         <motion.p
           initial={{opacity: 0, y: -10}}
           whileInView={{opacity: 1, y: 0}}
@@ -162,6 +162,21 @@ export default function Home() {
           className="text-center mx-[20dvw]"
         >Exterstellar is a QoL-focused browser extension for Stardance. Join <a href="https://hackclub.enterprise.slack.com/archives/C0ATUJ6703G" target="_blank">#exterstellar</a> on 
         Slack to stay up to date with the latest news and updates!</motion.p>
+      </div>
+      <div className="flex flex-col gap-3 text-center">
+        <motion.p
+          initial={{opacity: 0, y: -10}}
+          whileInView={{opacity: 1, y: 0}}
+          transition={{duration: 1.0}}
+          viewport={{once: true, amount: 0.5}}
+          className="text-4xl font-bold"
+        >Boost Stardance now!</motion.p>
+        <motion.p
+          initial={{opacity: 0, y: -10}}
+          whileInView={{opacity: 1, y: 0}}
+          transition={{duration: 1.0, delay: 0.25}}
+          viewport={{once: true, amount: 0.5}}
+        >Enhance your Stardance experience now with Exterstellar.</motion.p>
       </div>
     </div>
   );
