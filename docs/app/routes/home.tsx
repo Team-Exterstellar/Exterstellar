@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import logo from "/ExterstellarLogo.png";
 import MobileParserModule from "device-detector-js/dist/parsers/device/mobiles.js";
-const MobileParser = (MobileParserModule as any).default;
+import Lenis from "lenis";
+import 'lenis/dist/lenis.css';
 
 export function meta() {
   return [
@@ -26,6 +27,7 @@ export default function Home() {
     disabled: false
   });
   const [logoSrc, setLogoSrc] = useState(logo);
+  const MobileParser = (MobileParserModule as any).default;
 
   let meClicks = 0;
 
@@ -54,6 +56,19 @@ export default function Home() {
     `;
     document.head.appendChild(style);
     return () => document.getElementById("stars-style")?.remove();
+  }, []);
+
+  useEffect(() => {
+    const lenis = new Lenis();
+
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => lenis.destroy();
   }, []);
 
   useEffect(() => {
