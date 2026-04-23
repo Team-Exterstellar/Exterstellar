@@ -109,7 +109,7 @@ export default function Home() {
           >
             <motion.button
               whileHover={!browser.disabled ? {scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"} : {}}
-              whileTap={!browser.disabled ? {scale: 0.95} : {}}
+              whileTap={!browser.disabled ? {scale: 1, backgroundColor: "var(--color-gray-900)", color: "var(--color-white)", borderColor: "var(--color-gray-600)"} : {}}
               transition={{duration: 0.3, ease: "easeInOut"}}
               disabled={browser.disabled}
               className={browser.disabled ? "opacity-50! cursor-not-allowed!" : ""}
@@ -137,7 +137,7 @@ export default function Home() {
           >
             <motion.a
               whileHover={{scale: 1.05, backgroundColor: "var(--color-white)", color: "var(--color-black)", borderColor: "transparent"}}
-              whileTap={{scale: 1}}
+              whileTap={{scale: 1, backgroundColor: "var(--color-gray-900)", color: "var(--color-white)", borderColor: "var(--color-gray-600)"}}
               transition={{duration: 0.3, ease: "easeInOut"}}
               href="https://github.com/Team-Exterstellar/Exterstellar"
               className="btn no-underline!"
