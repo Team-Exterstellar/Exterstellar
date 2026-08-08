@@ -1,0 +1,1 @@
+export type Cfg = Record<string, string | number | boolean>;

@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "types": ["chrome"]
   },
-  "include": ["./**/*.ts"]
+  "include": ["./**/*.ts", "types/**/*.d.ts"]
 }
