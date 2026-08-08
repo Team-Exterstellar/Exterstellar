@@ -4,7 +4,6 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Healthcheck view links cuz sum like to 500
 const HTTP_STATUS_TEXT: Record<number, string> = {
   400: "Bad Request",
   401: "Unauthorized",
@@ -187,7 +186,7 @@ function getCsrfToken(): string | null {
   return meta?.content ?? null;
 }
 
-async function releaseReviewClaim(reviewId: string): Promise<void> {
+async function releaseReviewClaim(reviewId: string): Promise<boolean> {
   const csrfToken = getCsrfToken();
   const body = new URLSearchParams();
   body.set("_method", "delete");
@@ -207,10 +206,16 @@ async function releaseReviewClaim(reviewId: string): Promise<void> {
 
     if (res.status === 429) {
       registerRateLimited(res);
-    } else {
-      registerRequestOk();
+      return false;
     }
-  } catch (e) {}
+    registerRequestOk();
+
+    if (res.ok) return true;
+    if (res.status === 404 || res.status === 410) return true;
+    return false;
+  } catch (e) {
+    return false;
+  }
 }
 
 interface LinkHealthCacheEntry {
@@ -275,6 +280,81 @@ function looksLikeReviewId(key: string): boolean {
   return /^\d+$/.test(key);
 }
 
+const PENDING_CLAIMS_KEY = "exterstellar-better-goi-pending-claims";
+const PENDING_CLAIM_MAX_AGE_MS = 48 * 60 * 60 * 1000; 
+
+interface PendingClaimEntry {
+  claimedAt: number;
+}
+
+function loadPendingClaims(): Record<string, PendingClaimEntry> {
+  try {
+    const raw = localStorage.getItem(PENDING_CLAIMS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePendingClaims(claims: Record<string, PendingClaimEntry>) {
+  try {
+    localStorage.setItem(PENDING_CLAIMS_KEY, JSON.stringify(claims));
+  } catch (e) {}
+}
+
+function markPendingClaim(reviewId: string) {
+  const claims = loadPendingClaims();
+  if (claims[reviewId]) return; // already tracked, keep original claimedAt
+  claims[reviewId] = { claimedAt: Date.now() };
+  savePendingClaims(claims);
+}
+
+function clearPendingClaim(reviewId: string) {
+  const claims = loadPendingClaims();
+  if (!claims[reviewId]) return;
+  delete claims[reviewId];
+  savePendingClaims(claims);
+}
+
+let pendingClaimsSweepInFlight = false;
+
+export async function sweepPendingClaims(): Promise<void> {
+  if (pendingClaimsSweepInFlight) return;
+
+  const claims = loadPendingClaims();
+  const reviewIds = Object.keys(claims);
+  if (!reviewIds.length) return;
+
+  pendingClaimsSweepInFlight = true;
+  try {
+    const now = Date.now();
+    const toRelease: string[] = [];
+
+    for (const reviewId of reviewIds) {
+      const entry = claims[reviewId]!;
+      if (now - entry.claimedAt > PENDING_CLAIM_MAX_AGE_MS) {
+        clearPendingClaim(reviewId);
+        continue;
+      }
+      toRelease.push(reviewId);
+    }
+
+    if (!toRelease.length) return;
+
+    await runWithConcurrency(toRelease, 2, async (reviewId) => {
+      const handled = await releaseReviewClaim(reviewId);
+      if (handled) clearPendingClaim(reviewId);
+      // else: leave it tracked, a future sweep (next page load) will retry
+    });
+  } finally {
+    pendingClaimsSweepInFlight = false;
+  }
+}
+
+// -------------------------------------------------------------------------
+
 async function checkRowLinkHealth(row: HTMLTableRowElement) {
   if (row.hasAttribute("data-exterstellar-link-health-checked")) return;
   row.setAttribute("data-exterstellar-link-health-checked", "1");
@@ -291,10 +371,24 @@ async function checkRowLinkHealth(row: HTMLTableRowElement) {
     return;
   }
 
+  // Record the claim *before* probing, so if we get interrupted (nav away,
+  // tab close) between here and the release below, a future sweep still
+  // knows to clean it up.
+  if (reviewId) markPendingClaim(reviewId);
+
   const result = await probeLinkStatus(link.href);
 
-  if (result?.status === 429) return row.removeAttribute("data-exterstellar-link-health-checked");
-  if (reviewId) await releaseReviewClaim(reviewId);
+  if (result?.status === 429) {
+    row.removeAttribute("data-exterstellar-link-health-checked");
+    // leave the pending claim marked; sweep/retry will handle release
+    return;
+  }
+
+  if (reviewId) {
+    const released = await releaseReviewClaim(reviewId);
+    if (released) clearPendingClaim(reviewId);
+  }
+
   if (!result) return;
 
   setCachedLinkHealth(cacheKey, result.status, result.statusText);
@@ -339,6 +433,8 @@ function resetLinkHealthChecks(table: Element) {
 }
 
 export function handleLinkHealthCheck(cfg: Cfg) {
+  void sweepPendingClaims();
+
   if (cfg.linkHealthCheck === false || cfg.linkHealthCheck === "false") return;
 
   const table = document.querySelector(".ysws-queue__table-container table");

@@ -8,7 +8,6 @@ import {
 } from "../utils/rankUtils";
 import { highlightLeaderboardColumns } from "./lbHighlights";
 
-// Weekly stats on lb
 export function getUsernameFromLeaderboardRow(
   row: HTMLTableRowElement,
 ): string | null {

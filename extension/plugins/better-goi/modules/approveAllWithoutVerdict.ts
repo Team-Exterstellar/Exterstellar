@@ -1,6 +1,5 @@
 import type { Cfg } from "./types";
 
-// Approve all devlogs missing a verdict hyperlink
 function getMissingVerdictItems(): Element[] {
   const items = Array.from(document.querySelectorAll(".devlog-item"));
   return items.filter((item) => {

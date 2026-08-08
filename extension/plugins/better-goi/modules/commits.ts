@@ -1,6 +1,5 @@
 import type { Cfg } from "./types";
 
-// All git commits on review
 type Commit = {
   hash: string;
   message: string;

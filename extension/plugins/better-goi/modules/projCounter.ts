@@ -1,6 +1,5 @@
 import type { Cfg } from "./types";
 
-// Count projects reviewed
 export function getMondayKey(d = new Date()): string {
   const date = new Date(d);
   const day = date.getDay();

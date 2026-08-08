@@ -1,6 +1,5 @@
 import type { Cfg } from "./types";
 
-// LB filters
 type SortDirection = "asc" | "desc";
 
 export function parseNumericCellValue(td: HTMLTableCellElement | null): number {

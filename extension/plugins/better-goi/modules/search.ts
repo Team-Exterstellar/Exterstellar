@@ -1,7 +1,5 @@
 import type { Cfg } from "./types";
 
-// Search bar yippeeeee
-
 interface RowSearchData {
   reviewId: string;
   projectName: string;

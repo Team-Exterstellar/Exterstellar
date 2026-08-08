@@ -7,7 +7,6 @@ import {
 } from "../utils/chartUtils";
 import { getMondayKey } from "./projCounter";
 
-// User weekly devlogs
 function parseLabelToDate(label: string, reference: Date): Date {
   const [monthStr, dayStr] = label.split("/");
   const month = parseInt(monthStr ?? "1", 10) - 1;

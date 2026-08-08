@@ -1,6 +1,5 @@
 import type { Cfg } from "./types";
 
-// Devlog MD
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
