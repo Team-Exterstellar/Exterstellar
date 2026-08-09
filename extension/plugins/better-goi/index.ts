@@ -147,7 +147,6 @@ Exterstellar.register({
   ],
   start() {
     const cfg = Exterstellar.getConfig("better-goi");
-    console.log(cfg)
     const isReviewPage = window.location.pathname.includes(
       "/admin/certification/review",
     );

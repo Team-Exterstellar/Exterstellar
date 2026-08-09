@@ -10,7 +10,12 @@ export function getMyUsername(): string | null {
 
 function getSelector(canvas: HTMLCanvasElement) {
   if (canvas.id) return `#${canvas.id}`;
-  return `canvas[data-certification--ysws--reviewer-chart-target="${canvas.dataset["certification-Ysws-ReviewerChartTarget"]}"]`;
+  const target = canvas.getAttribute(
+    "data-certification--ysws--reviewer-chart-target",
+  );
+  return target
+    ? `canvas[data-certification--ysws--reviewer-chart-target="${target}"]`
+    : "canvas[data-certification--ysws--reviewer-chart-target]";
 }
 
 export async function getChartInstance(

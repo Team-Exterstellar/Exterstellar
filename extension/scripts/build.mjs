@@ -2,7 +2,7 @@ import * as esbuild from "esbuild";
 import { copyStatic } from "./copy-static.mjs";
 import { existsSync, readdirSync } from "fs";
 
-export function collectPlugins() {
+function collectPlugins() {
   const entries = readdirSync("plugins", {
     withFileTypes: true,
   });

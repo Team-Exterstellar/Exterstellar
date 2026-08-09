@@ -153,10 +153,7 @@ function disableBrokenLink(
   ensureBrokenLinkClickHandler();
   if (link.classList.contains("exterstellar-better-goi-broken-link")) return;
   link.classList.add("exterstellar-better-goi-broken-link");
-  // link.setAttribute("aria-disabled", "true");
   link.setAttribute("role", "button");
-  // link.dataset.originalHref = link.href;
-  // link.removeAttribute("href");
   link.title = formatStatusTooltip(status, statusText);
   link.textContent = "Error"
 }
@@ -306,7 +303,7 @@ function savePendingClaims(claims: Record<string, PendingClaimEntry>) {
 
 function markPendingClaim(reviewId: string) {
   const claims = loadPendingClaims();
-  if (claims[reviewId]) return; // already tracked, keep original claimedAt
+  if (claims[reviewId]) return;
   claims[reviewId] = { claimedAt: Date.now() };
   savePendingClaims(claims);
 }
@@ -346,14 +343,11 @@ export async function sweepPendingClaims(): Promise<void> {
     await runWithConcurrency(toRelease, 2, async (reviewId) => {
       const handled = await releaseReviewClaim(reviewId);
       if (handled) clearPendingClaim(reviewId);
-      // else: leave it tracked, a future sweep (next page load) will retry
     });
   } finally {
     pendingClaimsSweepInFlight = false;
   }
 }
-
-// -------------------------------------------------------------------------
 
 async function checkRowLinkHealth(row: HTMLTableRowElement) {
   if (row.hasAttribute("data-exterstellar-link-health-checked")) return;
@@ -371,16 +365,12 @@ async function checkRowLinkHealth(row: HTMLTableRowElement) {
     return;
   }
 
-  // Record the claim *before* probing, so if we get interrupted (nav away,
-  // tab close) between here and the release below, a future sweep still
-  // knows to clean it up.
   if (reviewId) markPendingClaim(reviewId);
 
   const result = await probeLinkStatus(link.href);
 
   if (result?.status === 429) {
     row.removeAttribute("data-exterstellar-link-health-checked");
-    // leave the pending claim marked; sweep/retry will handle release
     return;
   }
 
