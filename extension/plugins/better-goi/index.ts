@@ -18,7 +18,11 @@ import { handleLeaderboardReplay } from "./modules/lbReplay";
 import { handleApproveAllMissingVerdict } from "./modules/approveAllWithoutVerdict";
 import { handleIncremationProjectReviewed } from "./modules/projCounter";
 import { handleLinkHealthCheck } from "./modules/linkHealth";
-import { handleSidebarToggleHotkey, teardownSidebarHotkey } from "./modules/sidebarHotkey";
+import {
+  handleSidebarToggleHotkey,
+  teardownSidebarHotkey,
+} from "./modules/sidebarHotkey";
+import { handleGoisDeserveBetterGoals } from "./modules/goisDeserveBetterGoals";
 
 if (sessionStorage.getItem("_ext_better-goi_pre") === "1") {
   const pre = document.createElement("style");
@@ -144,25 +148,32 @@ Exterstellar.register({
       type: "checkbox",
       default: true,
     },
+    {
+      key: "goisDeserveBetterGoals",
+      label:
+        "GOIs deserve better goals! Show how many more devlogs needed until goal meet. (Shop Goals Enhanced required",
+      type: "checkbox",
+      default: false,
+    },
   ],
   start() {
     const cfg = Exterstellar.getConfig("better-goi");
     const isReviewPage = window.location.pathname.includes(
       "/admin/certification/review",
     );
-    if (!isReviewPage) return;
 
     const preload = cfg.preload !== false && cfg.preload !== "false";
     sessionStorage.setItem("_ext_better-goi_pre", preload ? "1" : "0");
-
     let style = document.getElementById("exterstellar-better-goi");
-    console.log(GOI_CSS)
-    if (!style) {
-      style = document.createElement("style");
-      style.id = "exterstellar-better-goi";
-      style.textContent = GOI_CSS;
+
+    if (isReviewPage) {
+      if (!style) {
+        style = document.createElement("style");
+        style.id = "exterstellar-better-goi";
+        style.textContent = GOI_CSS;
+      }
+      document.head.appendChild(style);
     }
-    document.head.appendChild(style);
 
     const isQueueListPage = () =>
       /^\/admin\/certification\/review\/?$/.test(window.location.pathname);
@@ -191,7 +202,12 @@ Exterstellar.register({
         handleApproveAllMissingVerdict(cfg);
         handleSidebarToggleHotkey(cfg);
       }
-      handleIncremationProjectReviewed(cfg, isReviewDetailPage(), isQueueListPage())
+      handleIncremationProjectReviewed(
+        cfg,
+        isReviewDetailPage(),
+        isQueueListPage(),
+      );
+      handleGoisDeserveBetterGoals(cfg, isQueueListPage());
     };
 
     document.addEventListener("turbo:load", onTurboUpdate);
@@ -205,7 +221,9 @@ Exterstellar.register({
       document.removeEventListener("turbo:frame-load", onTurboUpdate);
       teardownSidebarHotkey();
       document.getElementById("exterstellar-better-goi-search")?.remove();
-      document.getElementById("exterstellar-better-goi-chart-controls")?.remove();
+      document
+        .getElementById("exterstellar-better-goi-chart-controls")
+        ?.remove();
     };
   },
 });
