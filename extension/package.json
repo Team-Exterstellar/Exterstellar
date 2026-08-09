@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A highly customizable, QoL-focused browser extension for Stardance",
   "scripts": {
-    "build": "esbuild plugins/*.ts --bundle --format=iife --outdir=dist/plugins && esbuild content.ts --bundle --format=iife --outfile=dist/content.js && esbuild popup.ts --bundle --format=iife --outfile=dist/popup.js && esbuild importer.ts --bundle --format=iife --outfile=dist/importer.js && esbuild onboarding.ts --bundle --format=iife --outfile=dist/onboarding.js && esbuild background.ts --bundle --format=iife --outfile=dist/background.js && node scripts/copy-static.mjs",
+    "build": "node scripts/build.mjs",
     "watch": "node scripts/watch.mjs",
     "zip": "npm run build && cd dist && zip -r ../extension.zip . && cd .."
   },

@@ -1,5 +1,4 @@
 import * as esbuild from "esbuild";
-import { collectPlugins } from "./collect-plugins.mjs";
 import { copyStatic } from "./copy-static.mjs";
 import { existsSync, readdirSync } from "fs";
 
