@@ -198,7 +198,7 @@ Exterstellar.register({
       }
 
       .sge-summary__label {
-        font-size: 9px;
+        font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.07em;
@@ -207,7 +207,7 @@ Exterstellar.register({
       }
 
       .sge-summary__value {
-        font-size: 13px;
+        font-size: 20px;
         font-weight: 800;
         color: var(--color-space-text);
         line-height: 1;
@@ -217,7 +217,7 @@ Exterstellar.register({
       .sge-summary__value--amber {color: #fbbf24;}
 
       .sge-rec {
-        font-size: 11px;
+        font-size: 14px;
         color: var(--color-space-text-muted);
         line-height: 1.4;
         margin-bottom: 8px;
@@ -241,7 +241,7 @@ Exterstellar.register({
       }
 
       .sge-sort__label {
-        font-size: 9px;
+        font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -250,9 +250,9 @@ Exterstellar.register({
       }
 
       .sge-sort__btn {
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 700;
-        padding: 3px 8px;
+        padding: 4px 12px;
         border-radius: 6px;
         border: 1.5px solid transparent;
         background: var(--color-space-surface-faint);
@@ -297,7 +297,7 @@ Exterstellar.register({
         padding: 5px 8px 8px;
         box-sizing: border-box;
         border-top: 1px solid var(--color-space-surface-faint);
-        margin-top: 1px;
+        margin-top: 6px;
         width: 100%;
       }
 
@@ -478,7 +478,7 @@ Exterstellar.register({
     function parseGoals(): GoalItem[] | null {
       const section = qs(".discover-rail__section--wishlist");
       if (!section) return null;
-      return [...section.querySelectorAll(".shop-goals__item")].map(item => {
+      return Array.from(section.querySelectorAll(".shop-goals__item")).map(item => {
         const el = item as HTMLElement;
         const nameEl = el.querySelector(".shop-goals__name");
         const fill = el.querySelector<HTMLElement>(".shop-goals__progress-fill");
@@ -569,7 +569,9 @@ Exterstellar.register({
           e.preventDefault();
           g.elem.classList.remove("sge-drag-over");
           if (!dragSrcName || dragSrcName === g.name) return;
-          const names = [...container.querySelectorAll(".shop-goals__item")].map(el => el.querySelector(".shop-goals__name")?.textContent.trim()).filter((n): n is string => n !== undefined);
+          const names = Array.from(container.querySelectorAll(".shop-goals__item"))
+            .map(el => el.querySelector(".shop-goals__name")?.textContent.trim())
+            .filter((n): n is string => n !== undefined);
           const fi = names.indexOf(dragSrcName), ti = names.indexOf(g.name);
           if (fi === -1 || ti === -1) return;
           names.splice(fi, 1);
@@ -644,7 +646,7 @@ Exterstellar.register({
         } else {
           const h = currentMode === "cumulative" ? cumH : indivH;
           etaDiv.append(el("span", "sge-eta__time", fmtETA(h)));
-          if (currentMode === "cumulative") etaDiv.appendChild(el("span", "sge-eta__mode", "cumul."));
+          // if (currentMode === "cumulative") etaDiv.appendChild(el("span", "sge-eta__mode", "cumul."));
           etaDiv.appendChild(el("span", "sge-eta__pct", `${g.pct.toFixed(1)}%`));
         }
 
@@ -692,7 +694,7 @@ Exterstellar.register({
 
       if (showRec && nearest) {
         const rec = el("div", "sge-rec");
-        rec.innerHTML = `Focus on <strong>${nearest.name}</strong> - ${nearETA} away.`;
+        rec.innerHTML = `Focus on <strong>${nearest.name}</strong> which is ${nearETA} away.`;
         container.before(rec);
       }
 
@@ -710,8 +712,8 @@ Exterstellar.register({
         sortRow.appendChild(el("span", "sge-sort__divider"));
         sortRow.appendChild(el("span", "sge-sort__label", "ETA"));
         [
-          {key: "individual", label: "Indiv."},
-          {key: "cumulative", label: "Cumul."},
+          {key: "individual", label: "Individual."},
+          {key: "cumulative", label: "Cumulative."},
         ].forEach(({key, label}) => {
           sortRow.appendChild(mkSortBtn(label, key, () => currentMode, () => {currentMode = key as EtaMode; refresh();}));
         });
