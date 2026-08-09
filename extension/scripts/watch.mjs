@@ -2,8 +2,28 @@ import * as esbuild from "esbuild";
 import {existsSync, watch, readdirSync} from "fs";
 import { copyStatic, STATIC_FILES, STATIC_DIRS } from "./copy-static.mjs";
 
-const plugins = readdirSync("plugins").filter(f => f.endsWith(".ts")).map(f => `plugins/${f}`);
-
+function collectPlugins() {
+  const entries = readdirSync("plugins", {
+    withFileTypes: true,
+  });
+  const plugins = [];
+  for (const entry of entries) {
+    if (entry.isFile() && entry.name.endsWith(".ts")) {
+      plugins.push({
+        in: `plugins/${entry.name}`, out: entry.name.replace(/\.ts$/, "")
+      })
+    } else if (entry.isDirectory()) {
+      if (existsSync(`plugins/${entry.name}/index.ts`)) {
+        plugins.push({
+          in: `plugins/${entry.name}/index.ts`,
+          out: entry.name
+        })
+      }
+    }
+  }
+  return plugins;
+}
+const plugins = collectPlugins()
 const shared = {bundle: true, format: "iife", target: "es2020", sourcemap: true};
 
 const contexts = await Promise.all([
