@@ -23,6 +23,7 @@ import {
   teardownSidebarHotkey,
 } from "./modules/sidebarHotkey";
 import { handleGoisDeserveBetterGoals } from "./modules/goisDeserveBetterGoals";
+import { handleBannedFilter } from "./modules/hideStinkyFraudsters";
 
 if (sessionStorage.getItem("_ext_better-goi_pre") === "1") {
   const pre = document.createElement("style");
@@ -155,6 +156,13 @@ Exterstellar.register({
       type: "checkbox",
       default: false,
     },
+    {
+      key: "hideBanned",
+      label:
+        "Hide project's with the certification integrity set to banned because fraudsters smell bad.",
+      type: "checkbox",
+      default: true,
+    },
   ],
   start() {
     const cfg = Exterstellar.getConfig("better-goi");
@@ -194,6 +202,7 @@ Exterstellar.register({
           finalizeLeaderboardSortRestore(cfg);
           handleLeaderboardReplay(cfg);
         });
+        handleBannedFilter(cfg);
       }
       if (isReviewDetailPage()) {
         handleReviewDetailPage(cfg);
