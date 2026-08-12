@@ -48,11 +48,15 @@ function observeForBannedRows(table: Element) {
 }
 
 export function handleBannedFilter(cfg: Cfg) {
-  if (cfg.hideBanned == false || cfg.hideBanned === "false") return;
+  if (cfg.hideBanned === false || cfg.hideBanned === "false") return;
 
-  const table = document.querySelector(".ysws-queue__table-container table");
+  const table = document.querySelector<HTMLTableElement>(
+    ".ysws-queue__table-container table",
+  );
   if (!table) return;
 
   removeBannedRows(table);
+  if (table.hasAttribute("data-exterstellar-hide-banned-init")) return;
+  table.setAttribute("data-exterstellar-hide-banned-init", "1");
   observeForBannedRows(table);
 }
