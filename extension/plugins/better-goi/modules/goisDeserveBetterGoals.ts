@@ -24,6 +24,57 @@ function waitForElement<T extends Element>(
   });
 }
 
+const STARDUST_LAST_ID_KEY = "exterstellar-better-goi-stardust-last-id";
+const STARDUST_ADJUSTMENT_KEY = "exterstellar-better-goi-stardust-adjustment-total";
+
+function parseStardustDelta(item: HTMLElement): number | null {
+  const icon = item.querySelector(".notifications-item__icon");
+  if (icon?.classList.contains("notifications-item__icon--avatar")) return null;
+
+  const titleEl = item.querySelector(".notifications-item__title");
+  const strongText = titleEl?.querySelector("strong")?.textContent?.trim() ?? "";
+  const match = strongText.match(/([+-]\d+(?:\.\d+)?)\s*stardust/i);
+  if (!match) return null;
+  const delta = parseFloat(match[1]!);
+
+  // A positive "user grant" is the GOI payout itself landing in the wallet —
+  // that's the same money `projected` is already forecasting, so don't net it out.
+  // Everything else — shop purchases, refunds, negative/corrective grants,
+  // whatever label it carries — is real wallet movement `projected` doesn't
+  // know about, so always count it.
+  const isPositiveUserGrant = delta > 0 && /\(user grant\)/i.test(titleEl?.textContent ?? "");
+  if (isPositiveUserGrant) return null;
+
+  return delta;
+}
+
+export function captureStardustAdjustments(): void {
+  const items = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      ".notifications-item[data-notification-id]",
+    ),
+  );
+  if (items.length === 0) return;
+
+  const lastId = parseInt(localStorage.getItem(STARDUST_LAST_ID_KEY) ?? "0", 10);
+  let runningTotal = parseFloat(
+    localStorage.getItem(STARDUST_ADJUSTMENT_KEY) ?? "0",
+  );
+  let maxIdSeen = lastId;
+
+  for (const item of items) {
+    const id = parseInt(item.dataset.notificationId ?? "", 10);
+    if (Number.isNaN(id) || id <= lastId) continue;
+
+    const delta = parseStardustDelta(item);
+    if (delta !== null) runningTotal += delta;
+    if (id > maxIdSeen) maxIdSeen = id;
+  }
+
+  localStorage.setItem(STARDUST_ADJUSTMENT_KEY, runningTotal.toString());
+  localStorage.setItem(STARDUST_LAST_ID_KEY, maxIdSeen.toString());
+}
+
 function getColumnIndex(
   table: HTMLTableElement,
   headerMatch: string,
@@ -79,13 +130,19 @@ function getActualWalletStardust(): number | null {
   return Number.isNaN(val) ? null : val;
 }
 
+function getStardustAdjustmentTotal(): number {
+  return parseFloat(localStorage.getItem(STARDUST_ADJUSTMENT_KEY) ?? "0");
+}
+
 function getPendingStardust(): number {
   const projected = parseFloat(
     localStorage.getItem("exterstellar-better-goi-projected-sd") ?? "",
   );
   const actual = getActualWalletStardust();
   if (Number.isNaN(projected) || actual === null) return 0;
-  return Math.max(0, projected - actual);
+
+  const adjustments = getStardustAdjustmentTotal();
+  return Math.max(0, projected - actual + adjustments);
 }
 
 export async function handleGoisDeserveBetterGoals(
@@ -111,8 +168,7 @@ export async function handleGoisDeserveBetterGoals(
     }
 
     captureOwnProjectedStardust();
-  } else {
-    if (window.location.pathname !== "/shop") return;
+  } else if(window.location.pathname === "/shop"){
     const storedRate = parseFloat(localStorage.getItem("exterstellar-better-goi-sd-rate") ?? "");
     if (!storedRate || Number.isNaN(storedRate)) return;
     const itemsContainer =
@@ -186,5 +242,7 @@ export async function handleGoisDeserveBetterGoals(
       childList: true,
       subtree: true,
     });
+  } else if(window.location.pathname === "/my/notifications") {
+    captureStardustAdjustments();
   }
 }

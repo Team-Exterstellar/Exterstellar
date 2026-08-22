@@ -5,7 +5,7 @@ import {
   getMyUsername,
   extractPointValue,
 } from "../utils/chartUtils";
-import { getMondayKey } from "./projCounter";
+import { getDayKey } from "./projCounter";
 
 function parseLabelToDate(label: string, reference: Date): Date {
   const [monthStr, dayStr] = label.split("/");
@@ -78,11 +78,11 @@ async function computeMyWeeklyDevlogCount(): Promise<number | null> {
 }
 
 function getWeeklyProjectsReviewed(): number {
-  const currentMonday = getMondayKey();
+  const currentWednesday = getDayKey();
   const storedMonday = localStorage.getItem(
     "exterstellar-better-goi-projects-reviewed-this-week-start",
   );
-  if (storedMonday !== currentMonday) return 0;
+  if (storedMonday !== currentWednesday) return 0;
   return (
     parseInt(
       localStorage.getItem(
