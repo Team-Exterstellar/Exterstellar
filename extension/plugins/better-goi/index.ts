@@ -24,6 +24,7 @@ import {
 } from "./modules/sidebarHotkey";
 import { handleGoisDeserveBetterGoals } from "./modules/goisDeserveBetterGoals";
 import { handleBannedFilter } from "./modules/hideStinkyFraudsters";
+import { handleLinkPanels } from "./modules/openAllLinks";
 
 if (sessionStorage.getItem("_ext_better-goi_pre") === "1") {
   const pre = document.createElement("style");
@@ -163,6 +164,12 @@ Exterstellar.register({
       type: "checkbox",
       default: true,
     },
+    {
+      key: "openAllLinksButton",
+      label: "Opens all links needed to open like user's repositories, user's project repo and the demo of project.",
+      type: "checkbox",
+      default: true
+    }
   ],
   start() {
     const cfg = Exterstellar.getConfig("better-goi");
@@ -210,6 +217,7 @@ Exterstellar.register({
         handleDevlogReviewPanels(cfg);
         handleApproveAllMissingVerdict(cfg);
         handleSidebarToggleHotkey(cfg);
+        handleLinkPanels(cfg)
       }
       handleIncremationProjectReviewed(
         cfg,

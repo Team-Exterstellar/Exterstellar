@@ -474,7 +474,7 @@ function injectSearchBar(form: Element, cfg: Cfg) {
   search.id = "exterstellar-better-goi-search-input";
   search.classList.add("exterstellar-better-goi-search");
   search.placeholder =
-    "Search, paste sw dash link, or use (name=)/(user=)/(id=)/(hours=) e.g. (name=lennytheblahaj)";
+    "Do a generic search, paste StinkWright dash link, or use (name=)/(user=)/(id=)/(hours=) e.g. (name=lennytheblahaj)";
   search.addEventListener("input", () => filterTable(search.value, cfg));
 
   wrapper.appendChild(search);
