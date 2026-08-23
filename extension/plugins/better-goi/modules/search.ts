@@ -7,47 +7,59 @@ interface RowSearchData {
   userName: string;
   userId: string;
   lengthHours: string;
-  age: string;
 }
 
 function getRowSearchData(row: HTMLTableRowElement): RowSearchData {
-  const cells = row.querySelectorAll("td");
+  const cells = Array.from(row.querySelectorAll("td"));
   const reviewId = cells[0]?.textContent?.trim().toLowerCase() ?? "";
 
-  const projectCell = cells[2];
-  const projectLink = projectCell?.querySelector(
-    "a",
-  ) as HTMLAnchorElement | null;
-  const projectName = projectLink?.textContent?.trim().toLowerCase() ?? "";
+  let projectName = "";
   let projectId = "";
-  if (projectLink?.href) {
-    const match = projectLink.href.match(/\/admin\/projects\/(\d+)/);
-    projectId = match?.[1] ?? "";
-  }
-
-  const lengthHours = cells[4]?.textContent?.trim().toLowerCase() ?? "";
-  const userCell = cells[3];
-  const age =
-    (
-      cells[6]?.querySelector("span") as HTMLSpanElement | null
-    )?.textContent?.trim() ?? "";
-  const userLink = userCell?.querySelector("a") as HTMLAnchorElement | null;
-  const userName = userLink?.textContent?.trim().toLowerCase() ?? "";
+  let userName = "";
   let userId = "";
-  if (userLink?.href) {
-    const match = userLink.href.match(/\/admin\/users\/(\d+)/);
-    userId = match?.[1] ?? "";
+  let lengthHours = "";
+
+  for (const cell of cells) {
+    const link = cell.querySelector("a") as HTMLAnchorElement | null;
+    if (link?.href) {
+      const projectMatch = link.href.match(/\/admin\/projects\/(\d+)/);
+      if (projectMatch) {
+        projectName = link.textContent?.trim().toLowerCase() ?? "";
+        projectId = projectMatch[1] ?? "";
+        continue;
+      }
+      const userMatch = link.href.match(/\/admin\/users\/(\d+)/);
+      if (userMatch) {
+        userName = link.textContent?.trim().toLowerCase() ?? "";
+        userId = userMatch[1] ?? "";
+        continue;
+      }
+    }
+    const text = cell.textContent?.trim().toLowerCase() ?? "";
+    if (/^\d+(\.\d+)?\s*(hrs?|h|m)\b/.test(text)) {
+      lengthHours = text;
+    }
   }
 
-  return {
-    reviewId,
-    projectName,
-    projectId,
-    userName,
-    userId,
-    lengthHours,
-    age,
-  };
+  return { reviewId, projectName, projectId, userName, userId, lengthHours };
+}
+
+const originalRowOrder = new WeakMap<HTMLTableElement, HTMLTableRowElement[]>();
+
+function captureOriginalOrder(table: HTMLTableElement, rows: HTMLTableRowElement[]) {
+  if (!originalRowOrder.has(table)) {
+    originalRowOrder.set(table, [...rows]);
+  }
+}
+
+function restoreOriginalOrder(table: HTMLTableElement, tbody: HTMLTableSectionElement) {
+  const original = originalRowOrder.get(table);
+  if (!original) return;
+  for (const row of original) {
+    row.style.display = "";
+    delete row.dataset.swMatchScore;
+    tbody.appendChild(row);
+  }
 }
 
 function parseDevTimeToHours(raw: string): number {
@@ -64,34 +76,6 @@ function parseDevTimeToHours(raw: string): number {
 
   const plain = parseFloat(trimmed);
   return Number.isNaN(plain) ? 0 : plain;
-}
-
-function parseRelativeAgeToHours(raw: string): number {
-  const s = raw.trim().toLowerCase();
-  if (!s) return NaN;
-  if (s.includes("just now") || s === "now") return 0;
-
-  const match = s.match(
-    /(a|an|\d+(?:\.\d+)?)\s*(second|minute|hour|day|week|month|year)s?/,
-  );
-  if (!match) return NaN;
-
-  const rawNum = match[1] ?? "1";
-  const num = rawNum === "a" || rawNum === "an" ? 1 : parseFloat(rawNum);
-  const unit = match[2] ?? "";
-
-  const unitToHours: Record<string, number> = {
-    second: 1 / 3600,
-    minute: 1 / 60,
-    hour: 1,
-    day: 24,
-    week: 24 * 7,
-    month: 24 * 30,
-    year: 24 * 365,
-  };
-
-  const hoursPerUnit = unitToHours[unit];
-  return hoursPerUnit === undefined ? NaN : num * hoursPerUnit;
 }
 
 function levenshteinDistance(a: string, b: string): number {
@@ -139,50 +123,232 @@ interface SWMatchScore {
 }
 
 const SW_MATCH_WEIGHTS = {
-  projectName: 0.4,
   devTime: 0.25,
-  age: 0.15,
   username: 0.2,
+  projectName: 0.55,
 };
 
-function scoreRowAgainstSWProject(
+function scoreRowAgainstSWCert(
   row: HTMLTableRowElement,
-  sw: {
-    projectName: string;
+  cert: {
     devTimeHours: number;
-    ageHours: number;
     username: string;
+    projectName: string;
   },
 ): SWMatchScore {
-  const { projectName, userName, lengthHours, age } = getRowSearchData(row);
+  const { userName, lengthHours, projectName } = getRowSearchData(row);
 
-  const projectSim = stringSimilarity(projectName, sw.projectName);
-  const usernameSim = stringSimilarity(userName, sw.username);
+  const usernameSim = stringSimilarity(userName, cert.username);
+  const projectSim = stringSimilarity(projectName, cert.projectName);
 
   const devTimeDiff = Math.abs(
-    parseDevTimeToHours(lengthHours) - sw.devTimeHours,
+    parseDevTimeToHours(lengthHours) - cert.devTimeHours,
   );
   const devTimeCloseness = closenessFromDiff(devTimeDiff, 0.5);
 
-  const rowAgeHours = parseRelativeAgeToHours(age);
-  const ageDiff = Math.abs(rowAgeHours - sw.ageHours);
-  const ageCloseness = closenessFromDiff(ageDiff, 20);
-
   const score =
-    SW_MATCH_WEIGHTS.projectName * projectSim +
     SW_MATCH_WEIGHTS.devTime * devTimeCloseness +
-    SW_MATCH_WEIGHTS.age * ageCloseness +
-    SW_MATCH_WEIGHTS.username * usernameSim;
+    SW_MATCH_WEIGHTS.username * usernameSim +
+    SW_MATCH_WEIGHTS.projectName * projectSim;
 
   return { row, score };
 }
 
-async function handleSWDashLinks(id: string, cfg: Cfg) {
+interface ParsedSWCert {
+  devTimeHours: number;
+  verdict: string;
+  username: string;
+  slackId: string;
+  projectName: string;
+}
+
+const VERDICTS = new Set(["approved", "rejected", "pending"]);
+
+function parseSWCertData(data: any): ParsedSWCert {
+  console.log("[Better GOI] raw cert API response:", data);
+
+  const devTimeRaw =
+    data.devTime ?? data.dev_time ?? data.hackatimeHours ?? data.codingTime ?? 0;
+  const devTimeHours =
+    typeof devTimeRaw === "number" ? devTimeRaw : parseDevTimeToHours(String(devTimeRaw));
+
+  const verdictRaw = (data.verdict ?? data.status ?? "").toString().toLowerCase();
+  const verdict = VERDICTS.has(verdictRaw) ? verdictRaw : "";
+
+  const username = (data.submitterUsername ?? "").toString().toLowerCase();
+  const slackId = (data.submitterSlackId ?? "").toString();
+
+  return { devTimeHours, verdict, username, slackId, projectName: data.projectName ?? "" };
+}
+
+async function fetchSWCert(id: string, cfg: Cfg) {
   return await chrome.runtime.sendMessage({
     type: "FETCH_SW_CERT",
     id,
     swCookie: "session=" + cfg.swCookie,
   });
+}
+
+type SearchField = "id" | "name" | "user" | "hours";
+
+const FIELD_ALIASES: Record<string, SearchField> = {
+  id: "id",
+  review: "id",
+  reviewid: "id",
+  name: "name",
+  project: "name",
+  projectname: "name",
+  user: "user",
+  username: "user",
+  hours: "hours",
+  time: "hours",
+  devtime: "hours",
+};
+
+interface FieldFilter {
+  field: SearchField;
+  value: string;
+}
+
+function findGroupClose(raw: string, openIndex: number): number {
+  let inQuote: '"' | "'" | null = null;
+  for (let i = openIndex + 1; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inQuote) {
+      if (ch === inQuote) inQuote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      inQuote = ch as '"' | "'";
+      continue;
+    }
+    if (ch === ")") return i;
+  }
+  return -1;
+}
+
+function parseFieldTokens(inner: string): FieldFilter[] {
+  const filters: FieldFilter[] = [];
+  const keyRe = /(\w+)=/g;
+  const starts: { key: string; valueStart: number; keyStart: number }[] = [];
+  let m: RegExpExecArray | null;
+
+  while ((m = keyRe.exec(inner)) !== null) {
+    starts.push({ key: m[1]!, valueStart: keyRe.lastIndex, keyStart: m.index });
+  }
+
+  for (let idx = 0; idx < starts.length; idx++) {
+    const { key, valueStart } = starts[idx]!;
+    const end = idx + 1 < starts.length ? starts[idx + 1]!.keyStart : inner.length;
+    let raw = inner.slice(valueStart, end).trim();
+
+    if (
+      (raw.startsWith('"') && raw.endsWith('"')) ||
+      (raw.startsWith("'") && raw.endsWith("'"))
+    ) {
+      raw = raw.slice(1, -1);
+    }
+
+    const field = FIELD_ALIASES[key.toLowerCase()];
+    const value = raw.trim().toLowerCase();
+    if (field && value) filters.push({ field, value });
+  }
+
+  return filters;
+}
+
+function parseSearchQuery(raw: string): { filters: FieldFilter[]; freeText: string[] } {
+  const filters: FieldFilter[] = [];
+  let remainder = "";
+  let i = 0;
+
+  while (i < raw.length) {
+    if (raw[i] === "(") {
+      const close = findGroupClose(raw, i);
+      if (close === -1) break;
+      const inner = raw.slice(i + 1, close);
+      filters.push(...parseFieldTokens(inner));
+      i = close + 1;
+    } else {
+      remainder += raw[i];
+      i++;
+    }
+  }
+
+  const freeText = remainder
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  return { filters, freeText };
+}
+
+const SEARCH_FUZZY_THRESHOLD = 0.55;
+
+function fieldValue(row: RowSearchData, field: SearchField): string {
+  switch (field) {
+    case "id":
+      return row.reviewId.replace("#", "");
+    case "name":
+      return row.projectName;
+    case "user":
+      return row.userName;
+    case "hours":
+      return row.lengthHours;
+  }
+}
+
+function termScore(target: string, term: string): number {
+  if (!target) return 0;
+  if (target === term) return 1;
+  if (target.includes(term)) return 0.9;
+  return stringSimilarity(target, term);
+}
+
+function termMatches(target: string, term: string): boolean {
+  return termScore(target, term) >= SEARCH_FUZZY_THRESHOLD;
+}
+
+function matchesFilter(row: RowSearchData, filter: FieldFilter): boolean {
+  return termMatches(fieldValue(row, filter.field), filter.value);
+}
+
+function matchesFreeText(row: RowSearchData, term: string): boolean {
+  const idTerm = term.replace("#", "");
+  return (
+    termMatches(row.reviewId.replace("#", ""), idTerm) ||
+    termMatches(row.projectName, term) ||
+    termMatches(row.projectId, term) ||
+    termMatches(row.userName, term) ||
+    termMatches(row.userId, term) ||
+    termMatches(row.lengthHours, term)
+  );
+}
+
+function scoreRowMatch(
+  data: RowSearchData,
+  filters: FieldFilter[],
+  freeText: string[],
+): number {
+  let score = 0;
+  for (const f of filters) {
+    score += termScore(fieldValue(data, f.field), f.value);
+  }
+  const candidates = [
+    data.reviewId.replace("#", ""),
+    data.projectName,
+    data.projectId,
+    data.userName,
+    data.userId,
+    data.lengthHours,
+  ];
+  for (const t of freeText) {
+    let best = 0;
+    for (const c of candidates) best = Math.max(best, termScore(c, t));
+    score += best;
+  }
+  return score;
 }
 
 async function filterTable(query: string, cfg: Cfg) {
@@ -192,64 +358,100 @@ async function filterTable(query: string, cfg: Cfg) {
     .trim()
     .match(/ds\.shipwrights\.dev\/stardance\/certifications\/([0-9a-f-]{36})/i);
 
-  const table = document.querySelector(".ysws-queue__table-container table");
+  const table = document.querySelector(
+    ".ysws-queue__table-container table",
+  ) as HTMLTableElement | null;
   if (!table) return;
   const tbody = table.querySelector("tbody");
+  if (!tbody) return;
   const rows = Array.from(
     table.querySelectorAll("tbody tr"),
   ) as HTMLTableRowElement[];
 
-  if (swMatch && cfg.swCookie) {
-    const project = await handleSWDashLinks(swMatch[1] ?? "", cfg);
+  captureOriginalOrder(table, rows);
 
-    if (project?.projectName && project?.createdAt) {
-      const swProjectName = String(project.projectName).trim().toLowerCase();
-      const swDevTimeHours = parseDevTimeToHours(String(project.devTime ?? ""));
-      const swAgeHours =
-        (Date.now() - new Date(project.createdAt).getTime()) / (1000 * 60 * 60);
-      const swUsername = String(project.submitterUsername ?? "")
-        .trim()
-        .toLowerCase();
+  if (swMatch && cfg.swCookie) {
+    const res = await fetchSWCert(swMatch[1] ?? "", cfg);
+    if (res?.ok && res?.data) {
+      const cert = parseSWCertData(res.data);
+      if (cert.verdict !== "approved") {
+        flashSearchNotApproved(cert.verdict || "unknown");
+        return;
+      }
+
+      const SW_MATCH_MIN_SCORE = 0.35;
 
       const ranked = rows
         .map((row) =>
-          scoreRowAgainstSWProject(row, {
-            projectName: swProjectName,
-            devTimeHours: swDevTimeHours,
-            ageHours: swAgeHours,
-            username: swUsername,
+          scoreRowAgainstSWCert(row, {
+            devTimeHours: cert.devTimeHours,
+            username: cert.username,
+            projectName: cert.projectName,
           }),
         )
         .sort((a, b) => b.score - a.score);
 
       for (const { row, score } of ranked) {
-        row.style.display = "";
+        row.style.display = score >= SW_MATCH_MIN_SCORE ? "" : "none";
         row.dataset.swMatchScore = score.toFixed(3);
-        tbody?.appendChild(row);
+        tbody.appendChild(row);
       }
+      ranked[0]?.row.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
   }
 
+  if (!q) {
+    restoreOriginalOrder(table, tbody);
+    return;
+  }
+
+  const { filters, freeText } = parseSearchQuery(q);
+
+  const matched: { row: HTMLTableRowElement; score: number }[] = [];
+  const unmatched: HTMLTableRowElement[] = [];
+
   for (const row of rows) {
     delete row.dataset.swMatchScore;
-    if (!q) {
-      row.style.display = "";
-      continue;
+    const data = getRowSearchData(row);
+
+    const isMatch =
+      filters.every((f) => matchesFilter(data, f)) &&
+      freeText.every((t) => matchesFreeText(data, t));
+
+    if (isMatch) {
+      matched.push({ row, score: scoreRowMatch(data, filters, freeText) });
+    } else {
+      unmatched.push(row);
     }
-    const { reviewId, projectName, projectId, userName, userId } =
-      getRowSearchData(row);
-
-    const matches =
-      reviewId.includes(q) ||
-      projectName.includes(q) ||
-      projectId.includes(q) ||
-      userName.includes(q) ||
-      userId.includes(q) ||
-      reviewId.replace("#", "").includes(q.replace("#", ""));
-
-    row.style.display = matches ? "" : "none";
   }
+
+  matched.sort((a, b) => b.score - a.score);
+
+  for (const { row } of matched) {
+    row.style.display = "";
+    tbody.appendChild(row);
+  }
+  for (const row of unmatched) {
+    row.style.display = "none";
+    tbody.appendChild(row);
+  }
+}
+
+function flashSearchNotApproved(verdict: string) {
+  const search = document.getElementById(
+    "exterstellar-better-goi-search-input",
+  ) as HTMLInputElement | null;
+  if (!search) return;
+
+  const originalPlaceholder = search.placeholder;
+  search.classList.add("exterstellar-better-goi-search--not-approved");
+  search.placeholder = `Certification is "${verdict}", not approved yet — nothing to match`;
+
+  window.setTimeout(() => {
+    search.classList.remove("exterstellar-better-goi-search--not-approved");
+    search.placeholder = originalPlaceholder;
+  }, 5000);
 }
 
 function injectSearchBar(form: Element, cfg: Cfg) {
@@ -272,7 +474,7 @@ function injectSearchBar(form: Element, cfg: Cfg) {
   search.id = "exterstellar-better-goi-search-input";
   search.classList.add("exterstellar-better-goi-search");
   search.placeholder =
-    "Search by Review ID, Project Name, Project ID, Username or User ID...";
+    "Search, paste sw dash link, or use (name=)/(user=)/(id=)/(hours=) e.g. (name=lennytheblahaj)";
   search.addEventListener("input", () => filterTable(search.value, cfg));
 
   wrapper.appendChild(search);
@@ -285,6 +487,16 @@ export function handleQueuePage(cfg: Cfg) {
   if (cfg.search == false || cfg.search === "false") return;
   const form = document.querySelector("form.ysws-queue__filters");
   if (form) injectSearchBar(form, cfg);
+
+  const table = document.querySelector(
+    ".ysws-queue__table-container table",
+  ) as HTMLTableElement | null;
+  if (table) {
+    const rows = Array.from(
+      table.querySelectorAll("tbody tr"),
+    ) as HTMLTableRowElement[];
+    captureOriginalOrder(table, rows);
+  }
 
   const search = document.getElementById(
     "exterstellar-better-goi-search-input",
