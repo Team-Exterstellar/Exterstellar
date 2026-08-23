@@ -16,6 +16,10 @@ const GOI_CSS = `
       font-size: var(--font-size-s);
   }
 
+  .exterstellar-better-goi-search--not-approved {
+    border-color: #f87171 !important;
+  }
+
   .exterstellar-better-goi-search-icon {
     position: absolute;
     left: 12px;

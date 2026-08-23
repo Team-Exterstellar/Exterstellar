@@ -29,9 +29,9 @@ async function handleSWDashLinksImpl(id: string, swCookie: string) {
   const res = await fetch(
     `https://ds.shipwrights.dev/api/v1/workplaces/stardance/certifications/${id}`,
   );
-  if (!res.ok) return null;
+  if (!res.ok) return { ok: false };
   const data = await res.json();
-  return data;
+  return { ok: true, data };
 }
 
 async function resizeImage(url: string, width: number, height: number) {
