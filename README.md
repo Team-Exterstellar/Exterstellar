@@ -4,7 +4,7 @@ A quality-of-life browser extension for [Stardance](https://stardance.hackclub.c
 
 ## Installation
 
-Exterstellar is currently not on any store yet, so you'll have to load it manually.
+Exterstellar is currently on [Firefox](https://addons.mozilla.org/en-US/firefox/addon/exterstellar/) and [Chrome](https://chromewebstore.google.com/detail/exterstellar/pnepneldglohbplepnlhfcojeehakcgd) web stores.
 
 ### From the latest build (recommended)
 
