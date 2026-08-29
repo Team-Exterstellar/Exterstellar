@@ -1,4 +1,4 @@
-import type { ExportPayload, ManagerSettings, MgrFieldDef, PluginConfigMap, PluginManifestEntry, PluginStateMap } from "./types";
+import type { ExportPayload, ManagerSettings, MgrFieldDef, PluginConfigField, PluginConfigMap, PluginManifestEntry, PluginStateMap } from "./types";
 import { maybeShowTour } from "./onboarding"; 
 
 let states: PluginStateMap = {};
@@ -121,14 +121,10 @@ function buildConfigPanel(plugin: PluginManifestEntry): HTMLElement {
   const panel = el("div", "cfg-panel");
   const inputsByKey: Record<string, HTMLSelectElement | HTMLInputElement> = {};
   const rowsByKey: Record<string, HTMLElement> = {};
+  const fieldsRoot = el("div", "cfg-fields");
+  panel.appendChild(fieldsRoot);
 
-  for (const field of plugin.config ?? []) {
-    const cfgRow = el("div", "cfg-row");
-    const lbl = el("label", "cfg-label");
-    lbl.textContent = field.label;
-    lbl.title = field.label;
-    lbl.setAttribute("aria-label", field.label);
-
+  const makeInput = (field: PluginConfigField): HTMLInputElement | HTMLSelectElement => {
     let input: HTMLSelectElement | HTMLInputElement;
     if (field.type === "select") {
       input = document.createElement("select");
@@ -166,12 +162,59 @@ function buildConfigPanel(plugin: PluginManifestEntry): HTMLElement {
     });
 
     inputsByKey[field.key] = input;
+    return input;
+  };
+
+  const renderField = (field: PluginConfigField, parent: HTMLElement) => {
+    if (field.sub && field.sub.length) {
+      const details = el("details", "cfg-group");
+      const summary = el("summary", "cfg-group-summary");
+      if (field.type) {
+        const input = makeInput(field);
+        input.addEventListener("click", (e) => e.stopPropagation());
+        const lbl = el("label", "cfg-label");
+        lbl.textContent = field.label;
+        summary.append(input, lbl);
+      } else {
+        summary.textContent = field.label;
+      }
+      const subPanel = el("div", "cfg-subpanel");
+      for (const subField of field.sub) renderField(subField, subPanel);
+      details.append(summary, subPanel);
+      parent.appendChild(details);
+      rowsByKey[field.key] = details;
+      if (field.type === "checkbox") {
+        const guard = inputsByKey[field.key] as HTMLInputElement;
+        const sync = () => { subPanel.style.display = guard.checked ? "" : "none"; };
+        sync();
+        guard.addEventListener("change", sync);
+      }
+      return;
+    }
+
+    const cfgRow = el("div", "cfg-row");
+    const lbl = el("label", "cfg-label");
+    lbl.textContent = field.label;
+    lbl.title = field.label;
+    lbl.setAttribute("aria-label", field.label);
+    const input = makeInput(field);
     rowsByKey[field.key] = cfgRow;
     cfgRow.append(lbl, input);
-    panel.appendChild(cfgRow);
-  }
+    parent.appendChild(cfgRow);
+  };
 
-  for (const field of plugin.config ?? []) {
+  const allFields: PluginConfigField[] = [];
+  const collect = (fields?: PluginConfigField[]) => {
+    for (const f of fields ?? []) {
+      allFields.push(f);
+      if (f.sub) collect(f.sub);
+    }
+  };
+  collect(plugin.config);
+
+  for (const field of plugin.config ?? []) renderField(field, fieldsRoot);
+
+  for (const field of allFields) {
     if (!field.showIf) continue;
     const row = rowsByKey[field.key];
     const guard = inputsByKey[field.showIf.key];

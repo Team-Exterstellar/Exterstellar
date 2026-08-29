@@ -1,4 +1,5 @@
 import type { Cfg } from "./types";
+import { trackObserver } from "./cleanupRegistry";
 
 type SortDirection = "asc" | "desc";
 
@@ -181,9 +182,9 @@ function observeLeaderboardHeader(
   if (table.hasAttribute("data-exterstellar-lb-sort-init")) return;
   table.setAttribute("data-exterstellar-lb-sort-init", "1");
 
-  const observer = new MutationObserver(() => {
+  const observer = trackObserver(new MutationObserver(() => {
     makeAllNumericColumnsSortable(table, headRow);
-  });
+  }));
   observer.observe(headRow, { childList: true });
 }
 

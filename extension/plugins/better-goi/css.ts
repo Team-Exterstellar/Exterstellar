@@ -217,6 +217,84 @@ const GOI_CSS = `
   .exterstellar-better-goi-broken-link {
     opacity: 0.5;
   }
+
+  .exterstellar-better-goi-btn-broken {
+    color: #e5484d !important;
+    border-color: #e5484d !important;
+  }
+
+  /* Inline "ghost text" suggestion: a cloned <textarea> (see
+     autoGoipletion.ts) is placed behind the real one with a faint
+     text color; the real textarea's background is made transparent so the
+     clone's completion shows through. No extra CSS needed here — styling is
+     copied from the real textarea at runtime. */
+
+  .exterstellar-better-goi-justif-dd {
+    position: absolute;
+    z-index: 999999;
+    background: var(--color-set-1-bg, #16122b);
+    border: 2px solid var(--color-border-input, rgba(255, 255, 255, 0.15));
+    border-radius: var(--profile-radius, 8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    overflow-y: auto;
+    max-height: 240px;
+  }
+
+  .exterstellar-better-goi-justif-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    color: var(--color-space-text, #fff);
+    font-size: var(--font-size-s, 13px);
+    font-family: var(--font-family-text, sans-serif);
+  }
+
+  .exterstellar-better-goi-justif-item:hover,
+  .exterstellar-better-goi-justif-item--sel {
+    background: hsla(0, 0%, 100%, 0.08);
+  }
+
+  .exterstellar-better-goi-justif-item--sel {
+    outline: 1px solid var(--color-brand-highlight, #7fd4a8);
+  }
+
+  .exterstellar-better-goi-justif-item-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .exterstellar-better-goi-justif-item-meta {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--color-space-text-muted, rgba(255, 255, 255, 0.5));
+  }
+
+  .exterstellar-better-goi-justif-badge {
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 0 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .exterstellar-better-goi-justif-hint {
+    padding: 4px 10px 6px;
+    font-size: 10px;
+    color: var(--color-space-text-muted, rgba(255, 255, 255, 0.5));
+    border-top: 1px solid hsla(0, 0%, 100%, 0.08);
+  }
+
+  .exterstellar-better-goi-justif-hint kbd {
+    display: inline-block;
+    padding: 0 4px;
+    border: 1px solid hsla(0, 0%, 100%, 0.25);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 10px;
+  }
 `;
 
 export default GOI_CSS;

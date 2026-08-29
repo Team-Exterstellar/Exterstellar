@@ -30,7 +30,7 @@ function getActionLink(row: HTMLTableRowElement): HTMLAnchorElement | null {
   );
 }
 
-async function probeLinkStatus(
+export async function probeLinkStatus(
   url: string,
 ): Promise<{ status: number; statusText: string } | null> {
   try {
@@ -72,7 +72,7 @@ async function probeLinkStatus(
   }
 }
 
-function formatStatusTooltip(status: number, statusText: string): string {
+export function formatStatusTooltip(status: number, statusText: string): string {
   const label = statusText || HTTP_STATUS_TEXT[status] || "Error";
   return `${status} ${label}`;
 }
