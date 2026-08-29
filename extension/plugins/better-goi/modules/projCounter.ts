@@ -33,7 +33,41 @@ export function getDayKey(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+function getReviewIdFromUrl(): string | null {
+  const m = window.location.pathname.match(
+    /\/admin\/certification\/review\/(\d+)/,
+  );
+  return m ? (m[1] ?? null) : null;
+}
+
+const REVIEWED_IDS_KEY = "exterstellar-better-goi-reviewed-review-ids";
+const MAX_REVIEWED_IDS = 2000;
+
+// Returns true only the first time a given review id is seen, so re-clicking
+// the same review (or re-running the listener after a re-render/navigation)
+// can never inflate the counters. This is what keeps the local total in sync
+// with the DB's count of distinct reviews completed that day.
+function claimReviewId(reviewId: string): boolean {
+  let ids: string[] = [];
+  try {
+    ids = JSON.parse(
+      localStorage.getItem(REVIEWED_IDS_KEY) ?? "[]",
+    );
+  } catch {
+    ids = [];
+  }
+  if (!Array.isArray(ids)) ids = [];
+  if (ids.includes(reviewId)) return false;
+  ids.push(reviewId);
+  if (ids.length > MAX_REVIEWED_IDS) ids = ids.slice(-MAX_REVIEWED_IDS);
+  localStorage.setItem(REVIEWED_IDS_KEY, JSON.stringify(ids));
+  return true;
+}
+
 function incrementReviewCounters() {
+  const reviewId = getReviewIdFromUrl();
+  if (reviewId && !claimReviewId(reviewId)) return;
+
   const total =
     parseInt(
       localStorage.getItem("exterstellar-better-goi-projects-reviewed") ?? "0",
@@ -101,9 +135,15 @@ export async function handleIncremationProjectReviewed(
 
   if (isReviewPage) {
     const completeReviewBtn = document.querySelector(
-      '[data-certification--ysws--complete-review-target="button"]'
+      '[data-certification--ysws--complete-review-target="button"]',
     );
-    completeReviewBtn?.addEventListener("click", incrementReviewCounters);
+    if (
+      completeReviewBtn &&
+      !completeReviewBtn.hasAttribute("data-exter-reviewed-bound")
+    ) {
+      completeReviewBtn.setAttribute("data-exter-reviewed-bound", "1");
+      completeReviewBtn.addEventListener("click", incrementReviewCounters);
+    }
   } else if (isQueuePage) {
     if (document.getElementById("exterstellar-better-goi-projects-reviewed"))
       return;

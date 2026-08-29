@@ -25,7 +25,7 @@ function getCurrentShipDateRange(): { since: Date | null; until: Date | null } {
   }
 
   let since: Date | null = null;
-  if (earliest) {
+  if (earliest && latest && earliest.getTime() !== latest.getTime()) {
     since = new Date(earliest);
     since.setDate(since.getDate() - 1);
   }

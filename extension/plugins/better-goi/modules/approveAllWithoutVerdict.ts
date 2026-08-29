@@ -1,4 +1,5 @@
 import type { Cfg } from "./types";
+import { trackObserver } from "./cleanupRegistry";
 
 function getMissingVerdictItems(): Element[] {
   const items = Array.from(document.querySelectorAll(".devlog-item"));
@@ -80,10 +81,10 @@ export function handleApproveAllMissingVerdict(cfg: Cfg) {
   if (approveAllObserverAttached) return;
   approveAllObserverAttached = true;
 
-  const observer = new MutationObserver(() => {
+  const observer = trackObserver(new MutationObserver(() => {
     checkFlashForMissingVerdict();
-  });
-  observer.observe(document.documentElement, {
+  }));
+  observer.observe(document.documentElement ?? document, {
     childList: true,
     subtree: true,
   });

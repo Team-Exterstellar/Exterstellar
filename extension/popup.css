@@ -250,6 +250,54 @@ body {
   margin-left: auto;
 }
 
+.cfg-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.cfg-group {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.cfg-group-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d4d4d8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.cfg-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.cfg-group-summary::before {
+  content: "▸";
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.cfg-group[open] > .cfg-group-summary::before {
+  transform: rotate(90deg);
+}
+
+.cfg-subpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+}
+
 .footer {
   position: fixed;
   bottom: 0;

@@ -1,24 +1,24 @@
 import type { Cfg } from "./types";
 import { trackObserver } from "./cleanupRegistry";
 
-function isRowBanned(row: HTMLTableRowElement): boolean {
-  const integrityCell = row.querySelector(
-    'td[data-label="Integrity"]',
+function isRowHardware(row: HTMLTableRowElement): boolean {
+  const typeCell = row.querySelector(
+    'td[data-label="Type"]',
   ) as HTMLTableCellElement | null;
-  if (!integrityCell) return false;
+  if (!typeCell) return false;
 
-  const text = integrityCell.textContent?.trim().toLowerCase() ?? "";
-  return text.includes("banned");
+  const text = typeCell.textContent?.trim().toLowerCase() ?? "";
+  return text.includes("hardware");
 }
 
-function removeBannedRows(table: Element): number {
+function removeHardwareRows(table: Element): number {
   const rows = Array.from(
     table.querySelectorAll("tbody tr"),
   ) as HTMLTableRowElement[];
 
   let removed = 0;
   for (const row of rows) {
-    if (isRowBanned(row)) {
+    if (isRowHardware(row)) {
       row.remove();
       removed++;
     }
@@ -26,7 +26,7 @@ function removeBannedRows(table: Element): number {
   return removed;
 }
 
-function observeForBannedRows(table: Element) {
+function observeForHardwareRows(table: Element) {
   const tbody = table.querySelector("tbody");
   if (!tbody) return;
 
@@ -41,23 +41,23 @@ function observeForBannedRows(table: Element) {
     if (!shouldCheck) return;
 
     observer.disconnect();
-    removeBannedRows(table);
+    removeHardwareRows(table);
     observer.observe(tbody, { childList: true });
   }));
 
   observer.observe(tbody, { childList: true });
 }
 
-export function handleBannedFilter(cfg: Cfg) {
-  if (cfg.hideBanned === false || cfg.hideBanned === "false") return;
+export function handleHardwareFilter(cfg: Cfg) {
+  if (cfg.hideHardware === false || cfg.hideHardware === "false") return;
 
   const table = document.querySelector<HTMLTableElement>(
     ".ysws-queue__table-container table",
   );
   if (!table) return;
 
-  removeBannedRows(table);
-  if (table.hasAttribute("data-exterstellar-hide-banned-init")) return;
-  table.setAttribute("data-exterstellar-hide-banned-init", "1");
-  observeForBannedRows(table);
+  removeHardwareRows(table);
+  if (table.hasAttribute("data-exterstellar-hide-hardware-init")) return;
+  table.setAttribute("data-exterstellar-hide-hardware-init", "1");
+  observeForHardwareRows(table);
 }

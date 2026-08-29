@@ -1,11 +1,12 @@
 export interface PluginConfigField {
   key: string;
   label: string;
-  type: "text" | "number" | "select" | "checkbox";
-  default: string | boolean | number;
+  type?: "text" | "number" | "select" | "checkbox";
+  default?: string | boolean | number;
   placeholder?: string;
   options?: Array<string | {value: string; label: string}>;
   showIf?: {key: string; value: string};
+  sub?: PluginConfigField[];
 }
 
 export interface PluginDefinition {

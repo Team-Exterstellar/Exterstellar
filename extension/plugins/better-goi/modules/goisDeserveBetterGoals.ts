@@ -1,4 +1,5 @@
 import { Cfg } from "./types";
+import { trackObserver } from "./cleanupRegistry";
 
 function waitForElement<T extends Element>(
   selector: string,
@@ -216,7 +217,7 @@ export async function handleGoisDeserveBetterGoals(
         progressText.appendChild(span);
       };
       ensureSpan();
-      new MutationObserver(() => ensureSpan()).observe(progressText, {
+      trackObserver(new MutationObserver(() => ensureSpan())).observe(progressText, {
         childList: true,
       });
     }
@@ -238,7 +239,7 @@ export async function handleGoisDeserveBetterGoals(
       rec.appendChild(suffix);
     };
     applyRecSuffix();
-    new MutationObserver(() => applyRecSuffix()).observe(recRoot, {
+    trackObserver(new MutationObserver(() => applyRecSuffix())).observe(recRoot, {
       childList: true,
       subtree: true,
     });
