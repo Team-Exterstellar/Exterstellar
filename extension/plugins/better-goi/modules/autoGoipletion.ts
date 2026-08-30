@@ -890,11 +890,8 @@ function ensureGhostHint(ta: HTMLTextAreaElement): GhostHint {
   hint.style.inset = "0";
   hint.style.margin = "0";
   hint.style.background = cs.backgroundColor;
-  hint.style.color = "var(--color-space-surface, #6e738d)";
-  hint.style.setProperty(
-    "-webkit-text-fill-color",
-    "var(--color-space-surface, #6e738d)",
-  );
+  hint.style.color = "transparent";
+  hint.style.setProperty("-webkit-text-fill-color", "transparent");
   hint.style.visibility = "visible";
   hint.style.pointerEvents = "none";
   hint.style.resize = "none";
@@ -904,6 +901,21 @@ function ensureGhostHint(ta: HTMLTextAreaElement): GhostHint {
     const v = (cs as unknown as Record<string, string>)[prop];
     if (v != null) (hint.style as unknown as Record<string, string>)[prop] = v;
   }
+  hint.style.background = cs.background;
+  hint.style.backgroundColor = cs.backgroundColor;
+  hint.style.borderRadius = cs.borderRadius;
+  hint.style.boxShadow = "none";
+  hint.style.filter = cs.filter;
+  hint.style.opacity = cs.opacity;
+  (hint.style as unknown as Record<string, string>)["backdropFilter"] =
+    (cs as unknown as Record<string, string>)["backdropFilter"] ?? "";
+  // Border on the hint (behind) would double-draw over the textarea's border
+  // and make the whole field look brighter/more opaque — keep it transparent
+  // but retain the cloned widths so text layout still matches.
+  hint.style.borderColor = "transparent";
+  // `color` for ghost is faint, but keep `caretColor` from original so caret
+  // doesn't change brightness; ensure hint doesn't introduce its own filter
+  // that would brighten the whole field.
 
   const parent = ta.parentElement;
   parent?.insertBefore(wrap, ta);
@@ -929,7 +941,36 @@ function ensureGhostHint(ta: HTMLTextAreaElement): GhostHint {
 
 function setGhostText(ta: HTMLTextAreaElement, text: string): void {
   const h = ensureGhostHint(ta);
-  h.hint.textContent = text;
+  syncGhostGeometry(ta);
+  const prefix = ta.value;
+  let completion = text.slice(prefix.length);
+  h.hint.textContent = "";
+  // Keep leading whitespace with the transparent prefix so the faint span
+  // doesn't start with a space at an inline boundary — that wraps 1px lower
+  // than the single-text-node case (the "slightly lower" bug).
+  let ws = "";
+  const m = completion.match(/^\s+/);
+  if (m) {
+    ws = m[0]!;
+    completion = completion.slice(ws.length);
+  }
+  h.hint.appendChild(document.createTextNode(prefix + ws));
+  if (completion) {
+    const span = document.createElement("span");
+    span.textContent = completion;
+    span.style.color = "var(--color-space-surface, #6e738d)";
+    span.style.setProperty(
+      "-webkit-text-fill-color",
+      "var(--color-space-surface, #6e738d)",
+    );
+    // Ensure the span inherits the exact same inline layout as the raw text
+    // node so wrapping/baseline matches the single-node case.
+    span.style.whiteSpace = "pre-wrap";
+    span.style.font = "inherit";
+    span.style.letterSpacing = "inherit";
+    span.style.wordSpacing = "inherit";
+    h.hint.appendChild(span);
+  }
 }
 
 function clearGhostHint(ta: HTMLTextAreaElement): void {
@@ -964,6 +1005,39 @@ function syncGhostScroll(ta: HTMLTextAreaElement): void {
   if (!h) return;
   h.hint.scrollTop = ta.scrollTop;
   h.hint.scrollLeft = ta.scrollLeft;
+}
+
+function syncGhostGeometry(ta: HTMLTextAreaElement): void {
+  const h = ghostHints.get(ta);
+  if (!h) return;
+  const cs = getComputedStyle(ta);
+  // `ta` is now `background: transparent` (hint behind shows through), so
+  // don't re-read `background`/`borderRadius`/`boxShadow`/`filter`/`opacity`
+  // from `cs` — that would overwrite the correctly-cloned hint background
+  // with transparent and cause the brightness flash. Only layout/font props
+  // need live sync for resize.
+  for (const prop of HINT_CLONE_PROPS) {
+    const v = (cs as unknown as Record<string, string>)[prop];
+    if (v != null) (h.hint.style as unknown as Record<string, string>)[prop] = v;
+  }
+  h.hint.style.borderColor = "transparent";
+  h.hint.style.boxShadow = "none";
+  // Keep wrapper's flex/margin in sync but don't freeze its width/height to
+  // a px value — the wrapper stays at "100%" so the layout remains
+  // responsive. The hint itself gets the correct px width/height from the
+  // loop above and, being position:absolute with overflow:visible on the
+  // wrapper, will still line up with the textarea even after the user drags
+  // the resize handle to an explicit size (the previous bug was that those
+  // explicit hint dimensions were only cloned once at creation).
+  h.wrap.style.display = cs.display;
+  h.wrap.style.flex = cs.flex;
+  h.wrap.style.flexGrow = cs.flexGrow;
+  h.wrap.style.flexShrink = cs.flexShrink;
+  h.wrap.style.flexBasis = cs.flexBasis;
+  h.wrap.style.margin = cs.margin;
+  h.wrap.style.maxWidth = cs.maxWidth;
+  h.wrap.style.minWidth = cs.minWidth;
+  syncGhostScroll(ta);
 }
 
 function renderGhostSelection(ta: HTMLTextAreaElement): void {
@@ -1423,6 +1497,33 @@ function relearnOnVerdict(e: MouseEvent): void {
 }
 
 function handleKeydown(ta: HTMLTextAreaElement, e: KeyboardEvent): void {
+  // Debug shortcut: Ctrl+Shift+G while focused copies ghost alignment dump
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "g") {
+    e.preventDefault();
+    const h = ghostHints.get(ta);
+    const domHint = (ta.parentElement?.querySelector(
+      'div[aria-hidden="true"]',
+    ) ?? null) as HTMLDivElement | null;
+    const hintEl = h?.hint ?? domHint;
+    const gc = (el: Element) => getComputedStyle(el as Element);
+    const span = hintEl?.querySelector("span") as HTMLSpanElement | null;
+    const dump: Record<string, unknown> = {
+      taRect: ta.getBoundingClientRect(),
+      hintRect: hintEl?.getBoundingClientRect() ?? null,
+      spanRect: span?.getBoundingClientRect() ?? null,
+      taLineHeight: gc(ta).lineHeight,
+      hintLineHeight: hintEl ? gc(hintEl).lineHeight : null,
+      hintHtml: hintEl?.innerHTML.slice(0, 300),
+      ghost,
+      sel: ta.selectionStart,
+    };
+    const txt = JSON.stringify(dump, null, 2);
+    navigator.clipboard?.writeText(txt).catch(() => {});
+    console.log("[ghost debug]", dump);
+    // also show in prompt so you can copy even if clipboard blocked
+    window.prompt("Ghost debug — Ctrl+C to copy", txt);
+    return;
+  }
   if ((e.ctrlKey || e.metaKey) && (e.code === "Space" || e.key === " ")) {
     e.preventDefault();
     forceShowNext = true;
@@ -1663,8 +1764,11 @@ function attach(ta: HTMLTextAreaElement): void {
   form?.addEventListener("turbo:submit-end", onTurboSubmitEnd);
 
   const ro = new ResizeObserver(() => {
+    if (ghostHints.has(ta)) syncGhostGeometry(ta);
     if (activeTA === ta) {
       if (ddEl) positionDd(ta);
+      // Re-render ghost so the new dimensions are used for wrapping.
+      if (ghostEnabled && document.activeElement === ta) renderGhostSelection(ta);
     }
   });
   const roTargets = new Set<Element>([ta]);
@@ -1698,11 +1802,13 @@ function scan(root: ParentNode): void {
 }
 
 function repositionOnScroll(): void {
-  if (!activeTA || !ddOpen || !ddEl) return;
+  if (!activeTA) return;
+  if (ghostHints.has(activeTA)) syncGhostGeometry(activeTA);
   if (!activeTA.isConnected) {
     hideAll();
     return;
   }
+  if (!ddOpen || !ddEl) return;
   positionDd(activeTA);
 }
 
