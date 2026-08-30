@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Exterstellar",
-  "version": "1.0.2.1",
+  "version": "1.0.3",
   "description": "Exterstellar is a QoL-focused browser extension for Stardance.",
   "icons": {
     "16": "images/16.png",
