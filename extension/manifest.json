@@ -34,7 +34,6 @@
         "plugins/devlog-changelog.js",
         "plugins/shop-goals-enhanced.js",
         "plugins/persistent-devlogs.js",
-        "plugins/link-preview.js",
         "plugins/rng-odds.js",
         "plugins/focus-mode.js",
         "content.js"
