@@ -93,3 +93,35 @@ export interface ExportPayload {
 
 export type CssVarMap = Record<string, string>;
 export type FlavorMap = Record<string, CssVarMap>;
+
+export type CommitDiffFileStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "unchanged" | "changed";
+
+export interface CommitDiffFile {
+  filename: string;
+  previousFilename?: string;
+  status: CommitDiffFileStatus;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch?: string;
+  rawDiff?: string;
+  blobUrl?: string;
+  tooLarge?: boolean;
+  collapsed?: boolean;
+  binary?: boolean;
+}
+
+export interface CommitDiff {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+  url: string;
+  stats: { additions: number; deletions: number; total: number };
+  files: CommitDiffFile[];
+  rawDiff?: string;
+  rawPatch?: string;
+  error?: string;
+  isPrivate?: boolean;
+}

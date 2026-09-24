@@ -27,6 +27,7 @@
         "plugins/scrollbar.js",
         "plugins/oneko.js",
         "plugins/devlog-formatter.js",
+        "plugins/disable-blackhole.js",
         "plugins/sidebar-hotkeys.js",
         "plugins/sidebar-reorder.js",
         "plugins/themes.js",
@@ -36,6 +37,7 @@
         "plugins/persistent-devlogs.js",
         "plugins/rng-odds.js",
         "plugins/focus-mode.js",
+        "plugins/frozen-notes-expand.js",
         "content.js"
       ],
       "run_at": "document_start"

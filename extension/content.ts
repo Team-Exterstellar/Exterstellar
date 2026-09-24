@@ -5,8 +5,12 @@ declare const Exterstellar: import("./types").ExterstellarAPI;
 let _activeStates: PluginStateMap = {};
 
 chrome.storage.sync.get(["pluginStates", "pluginConfig"], async (data) => {
-  const states: PluginStateMap = data["pluginStates"] ?? {};
+  let states: PluginStateMap = data["pluginStates"] ?? {};
   const configs: PluginConfigMap = data["pluginConfig"] ?? {};
+  if (states["frozen-notes-expand"] === undefined) {
+    states = { ...states, "frozen-notes-expand": true };
+    chrome.storage.sync.set({ pluginStates: states });
+  }
   _activeStates = {...states};
 
   Exterstellar.loadConfigs(configs);

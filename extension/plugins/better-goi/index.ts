@@ -2,13 +2,11 @@ export {};
 declare const Exterstellar: import("../../types").ExterstellarAPI;
 
 import GOI_CSS from "./css";
-import { handleQueuePage } from "./modules/search";
-import { handleDevlogMarkdown } from "./modules/devlogMarkdown";
+import { handleQueuePage, teardownQueueSearch } from "./modules/search";
 import { handleReviewDetailPage } from "./modules/commits";
 import { handleChartControls } from "./modules/chartControls";
 import { handleDevlogReviewPanels } from "./modules/openAllCommits";
 import { handleRandomProject } from "./modules/randProj";
-import { handleWeeklyStat } from "./modules/weeklyStat";
 import { handleWeeklyLeaderboardColumn } from "./modules/lbCol";
 import {
   handleLeaderboardSorting,
@@ -20,7 +18,6 @@ import {
   handleJustificationAutocomplete,
   teardownJustificationAutocomplete,
 } from "./modules/autoGoipletion";
-import { handleIncremationProjectReviewed } from "./modules/projCounter";
 import { handleLinkHealthCheck, sweepPendingClaims } from "./modules/linkHealth";
 import {
   handleSidebarToggleHotkey,
@@ -31,7 +28,9 @@ import { handleBannedFilter } from "./modules/hideStinkyFraudsters";
 import { handleLinkPanels } from "./modules/openAllLinks";
 import { handleHardwareFilter } from "./modules/iAintNoHardwareGOI";
 import { handleProjBtnHealthCheck } from "./modules/projsBTNHealhcheck";
+import { handleQueueMultiSort } from "./modules/queueMultiSort";
 import { disconnectTrackedObservers } from "./modules/cleanupRegistry";
+import { teardownViewer } from "./modules/commitViewer";
 
 if (sessionStorage.getItem("_ext_better-goi_pre") === "1") {
   const pre = document.createElement("style");
@@ -60,36 +59,6 @@ Exterstellar.register({
       default: "",
     },
     {
-      key: "autoGoipletion",
-      label:
-        "Autocomplete justifications in reviews (learns from the justifications you write)",
-      type: "checkbox",
-      default: true,
-      sub: [
-        {
-          key: "autoGoipletionGhostText",
-          label:
-            "Show inline ghost-text completion while typing justifications",
-          type: "checkbox",
-          default: true,
-        },
-        {
-          key: "snippetInsert",
-          label:
-            "Type {commits}, {hours}, {approved}, {approvedMinutes}, {devlogs}, {lines} to insert live data (add All suffix for all devlogs, e.g. {commitsAll})",
-          type: "checkbox",
-          default: true,
-        },
-        {
-          key: "autoGoipletionCommonPhrases",
-          label:
-            "Learn common phrases you repeat across many reviews and suggest them on their own (e.g. 'The commits all seem regular')",
-          type: "checkbox",
-          default: true,
-        },
-      ],
-    },
-    {
       key: "grp_leaderboard",
       label: "Leaderboard & Stats",
       sub: [
@@ -102,12 +71,6 @@ Exterstellar.register({
         {
           key: "daysOnTop",
           label: "Show days spent as #1 reviewer on that day",
-          type: "checkbox",
-          default: true,
-        },
-        {
-          key: "weeklyStat",
-          label: "Show your weekly devlog review count next to the goal",
           type: "checkbox",
           default: true,
         },
@@ -130,16 +93,40 @@ Exterstellar.register({
       label: "Reviews",
       sub: [
         {
-          key: "markdown",
-          label: "Use extension's markdown support in reviews",
-          type: "checkbox",
-          default: true,
-        },
-        {
           key: "git",
           label: "Show all git activity in review sidebar panel",
           type: "checkbox",
           default: true,
+        },
+        {
+          key: "autoGoipletion",
+          label:
+            "Autocomplete justifications in reviews (learns from the justifications you write)",
+          type: "checkbox",
+          default: true,
+          sub: [
+            {
+              key: "autoGoipletionGhostText",
+              label:
+                "Show inline ghost-text completion while typing justifications",
+              type: "checkbox",
+              default: true,
+            },
+            {
+              key: "snippetInsert",
+              label:
+                "Type {commits}, {hours}, {approved}, {approvedMinutes}, {devlogs}, {lines} to insert live data (add All suffix for all devlogs, e.g. {commitsAll})",
+              type: "checkbox",
+              default: true,
+            },
+            {
+              key: "autoGoipletionCommonPhrases",
+              label:
+                "Learn common phrases you repeat across many reviews and suggest them on their own (e.g. 'The commits all seem regular')",
+              type: "checkbox",
+              default: true,
+            },
+          ],
         },
         {
           key: "commitsButton",
@@ -148,15 +135,36 @@ Exterstellar.register({
           default: true,
         },
         {
+          key: "grp_commitViewer",
+          label: "In-Platform Commit Viewer (new)",
+          sub: [
+            {
+              key: "githubToken",
+              label: "GitHub PAT (optional, raises rate limit 60→5000/h)",
+              type: "text",
+              placeholder: "ghp_...",
+              default: "",
+            },
+            {
+              key: "gitlabToken",
+              label: "GitLab PAT (optional, for ratelimits)",
+              type: "text",
+              placeholder: "glpat-...",
+              default: "",
+            },
+            {
+              key: "codebergToken",
+              label: "Codeberg PAT (optional, for ratelimits)",
+              type: "text",
+              placeholder: "…",
+              default: "",
+            },
+          ],
+        },
+        {
           key: "approveAllMissingVerdict",
           label:
             "Show 'Approve all missing verdict' link on incomplete-review error",
-          type: "checkbox",
-          default: true,
-        },
-        {
-          key: "linkHealthCheck",
-          label: "Check review links for errors and disable broken ones",
           type: "checkbox",
           default: true,
         },
@@ -204,10 +212,16 @@ Exterstellar.register({
           default: true,
         },
         {
-          key: "emojiSupport",
-          label: "Render Slack emoji shortcodes in devlog markdown",
+          key: "queueMultiSort",
+          label: "Client-side multi-sort on queue table (Click header to sort, Shift+Click to add secondary sort)",
           type: "checkbox",
           default: true,
+        },
+        {
+          key: "linkHealthCheck",
+          label: "Check dash queue links for errors and disable broken ones",
+          type: "checkbox",
+          default: false,
         },
       ],
     },
@@ -221,13 +235,6 @@ Exterstellar.register({
             "GOIs deserve better goals! Show how many more devlogs needed until goal meet. (Shop Goals Enhanced required",
           type: "checkbox",
           default: false,
-        },
-        {
-          key: "projectsReviewedCounter",
-          label:
-            "Show the projects you have reviewed since plugin enabled and weekly projects reviewed!",
-          type: "checkbox",
-          default: true,
         },
         {
           key: "hideBanned",
@@ -273,12 +280,11 @@ Exterstellar.register({
       );
 
     const onTurboUpdate = () => {
-      void sweepPendingClaims();
+      if (cfg.linkHealthCheck !== false && cfg.linkHealthCheck !== "false") void sweepPendingClaims();
       if (isQueueListPage()) {
         handleQueuePage(cfg);
         handleChartControls(cfg);
         handleRandomProject(cfg);
-        handleWeeklyStat(cfg);
         handleLinkHealthCheck(cfg);
         handleLeaderboardSorting(cfg);
         handleWeeklyLeaderboardColumn(cfg).then(() => {
@@ -287,10 +293,10 @@ Exterstellar.register({
         });
         handleBannedFilter(cfg);
         handleHardwareFilter(cfg);
+        handleQueueMultiSort(cfg);
       }
       if (isReviewDetailPage()) {
         handleReviewDetailPage(cfg);
-        handleDevlogMarkdown(cfg);
         handleDevlogReviewPanels(cfg);
         handleApproveAllMissingVerdict(cfg);
         handleSidebarToggleHotkey(cfg);
@@ -298,11 +304,6 @@ Exterstellar.register({
         handleProjBtnHealthCheck(cfg);
         void handleJustificationAutocomplete(cfg);
       }
-      handleIncremationProjectReviewed(
-        cfg,
-        isReviewDetailPage(),
-        isQueueListPage(),
-      );
       handleGoisDeserveBetterGoals(cfg, isQueueListPage());
     };
 
@@ -312,10 +313,13 @@ Exterstellar.register({
     onTurboUpdate();
 
     return function cleanup() {
+      teardownViewer();
       style?.remove();
       document.removeEventListener("turbo:load", onTurboUpdate);
       document.removeEventListener("turbo:frame-load", onTurboUpdate);
       teardownSidebarHotkey();
+      document.querySelectorAll(".exterstellar-cv-overlay").forEach((n) => n.remove());
+      document.body.style.overflow = "";
       document
         .querySelectorAll(
           [
@@ -334,6 +338,7 @@ Exterstellar.register({
         .forEach((el) => el.removeAttribute("data-exterstellar-btn-health-checked"));
       disconnectTrackedObservers();
       teardownJustificationAutocomplete();
+      teardownQueueSearch();
     };
   },
 });

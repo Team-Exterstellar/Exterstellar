@@ -44,7 +44,6 @@ async function injectWeeklyLeaderboardColumn(
   const showRankChange = cfg.rankChange !== false && cfg.rankChange !== "false";
   const showDaysOnTop = cfg.daysOnTop !== false && cfg.daysOnTop !== "false";
   const showHighlights = cfg.leaderboardHighlights !== false && cfg.leaderboardHighlights !== "false";
-  const showTotal = cfg.totalDevlogs !== false && cfg.totalDevlogs !== "false";
 
   const headRow = table.querySelector("thead tr");
   if (headRow) {
@@ -64,12 +63,7 @@ async function injectWeeklyLeaderboardColumn(
       daysOnTopTh.textContent = "Days on top";
       headRow.appendChild(daysOnTopTh);
     }
-    if (showTotal) {
-      const totalTh = document.createElement("th");
-      totalTh.classList.add("ysws-dashboard__col-num");
-      totalTh.textContent = "Total devlogs";
-      headRow.appendChild(totalTh);
-    }
+
   }
 
   const now = new Date();
@@ -113,15 +107,7 @@ async function injectWeeklyLeaderboardColumn(
       row.appendChild(daysOnTopTd);
     }
 
-    if (showTotal) {
-      const total = username
-        ? await computeTotalCountForUsername(chart, username)
-        : null;
-      const totalTd = document.createElement("td");
-      totalTd.classList.add("ysws-dashboard__col-num");
-      totalTd.textContent = total === null ? "0" : String(total);
-      row.appendChild(totalTd);
-    }
+
   }
 
   if (showHighlights) highlightLeaderboardColumns(table);

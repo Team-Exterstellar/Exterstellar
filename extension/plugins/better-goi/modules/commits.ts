@@ -1,4 +1,5 @@
 import type { Cfg } from "./types";
+import { openCommitViewer } from "./commitViewer";
 
 type Commit = {
   hash: string;
@@ -344,7 +345,7 @@ function openAllCommitTabs(commits: Commit[]) {
   });
 }
 
-async function injectAllProjectsCommits(div: Element) {
+async function injectAllProjectsCommits(div: Element, cfg: Cfg) {
   if (div.hasAttribute("data-exterstellar-all-project-commits")) return;
   const sectionDetails = document.createElement("section");
   div.setAttribute("data-exterstellar-all-project-commits", "1");
@@ -392,10 +393,26 @@ async function injectAllProjectsCommits(div: Element) {
     return;
   }
 
-  header.textContent = "Git Activity - ";
+  header.textContent = "Git Activity — ";
+  const viewAllLink = document.createElement("a");
+  viewAllLink.href = "#";
+  viewAllLink.textContent = `View All (${commitsData.length})`;
+  viewAllLink.title = "Open in-platform diff viewer (all files, all commits)";
+  viewAllLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    void openCommitViewer(commitsData, repoLink.href, cfg, 0);
+  });
+  header.appendChild(viewAllLink);
+
+  const sep = document.createTextNode(" · ");
+  header.appendChild(sep);
+
   const openAllLink = document.createElement("a");
   openAllLink.href = "#";
   openAllLink.textContent = "Open All";
+  openAllLink.title = "Open all commits in new tabs (may crash on many)";
+  openAllLink.style.fontSize = "12px";
+  openAllLink.style.opacity = "0.75";
   openAllLink.addEventListener("click", (e) => {
     e.preventDefault();
     openAllCommitTabs(commitsData);
@@ -405,6 +422,7 @@ async function injectAllProjectsCommits(div: Element) {
   for (const commit of commitsData.reverse()) {
     const commitDiv = document.createElement("div");
     commitDiv.classList.add("detail-item");
+
     const commitKeyMSG = document.createElement("span");
     commitKeyMSG.textContent = commit.message;
 
@@ -419,11 +437,31 @@ async function injectAllProjectsCommits(div: Element) {
     commitDiv.appendChild(commitKeyMSG);
 
     const commitKeyDetails = document.createElement("span");
-    commitKeyDetails.textContent = `By ${commit.author} · ${formatDate(commit.date)}`;
     commitKeyDetails.classList.add(
       "exterstellar-better-goi-review-commit-details",
     );
+    commitKeyDetails.textContent = `By ${commit.author} · ${formatDate(commit.date)}`;
+
+    const sep = document.createTextNode(" · ");
+    commitKeyDetails.appendChild(sep);
+
+    const viewLink = document.createElement("a");
+    viewLink.href = "#";
+    viewLink.textContent = "view";
+    viewLink.title = "View this commit diff in viewer";
+    // inline with grey text, same font size, muted until hover
+    viewLink.style.cssText =
+      "font-size:inherit; font-style:inherit; color:var(--color-space-accent, #cba6f7); opacity:.9; text-decoration:none; cursor:pointer; margin-left:2px;";
+    viewLink.addEventListener("mouseenter", () => (viewLink.style.textDecoration = "underline"));
+    viewLink.addEventListener("mouseleave", () => (viewLink.style.textDecoration = "none"));
+    viewLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void openCommitViewer([commit], repoLink.href, cfg, 0);
+    });
+    commitKeyDetails.appendChild(viewLink);
     commitDiv.appendChild(commitKeyDetails);
+
     commitArea.appendChild(commitDiv);
   }
   sectionDetails.appendChild(commitArea);
@@ -433,5 +471,5 @@ async function injectAllProjectsCommits(div: Element) {
 export function handleReviewDetailPage(cfg: Cfg) {
   if (cfg.git === false || cfg.git === "false") return;
   const sidebar = document.querySelector("div.review-detail-right");
-  if (sidebar) injectAllProjectsCommits(sidebar);
+  if (sidebar) void injectAllProjectsCommits(sidebar, cfg);
 }

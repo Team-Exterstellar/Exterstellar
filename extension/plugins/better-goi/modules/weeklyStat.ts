@@ -5,7 +5,6 @@ import {
   getMyUsername,
   extractPointValue,
 } from "../utils/chartUtils";
-import { getDayKey } from "./projCounter";
 
 function parseLabelToDate(label: string, reference: Date): Date {
   const [monthStr, dayStr] = label.split("/");
@@ -77,22 +76,6 @@ async function computeMyWeeklyDevlogCount(): Promise<number | null> {
   return computeWeeklyCountForUsername(chart, username, new Date());
 }
 
-function getWeeklyProjectsReviewed(): number {
-  const currentWednesday = getDayKey();
-  const storedMonday = localStorage.getItem(
-    "exterstellar-better-goi-projects-reviewed-this-week-start",
-  );
-  if (storedMonday !== currentWednesday) return 0;
-  return (
-    parseInt(
-      localStorage.getItem(
-        "exterstellar-better-goi-projects-reviewed-this-week",
-      ) ?? "0",
-      10,
-    ) || 0
-  );
-}
-
 async function injectWeeklyStat(goalEl: Element) {
   if (document.getElementById("exterstellar-better-goi-week-stats")) return;
 
@@ -115,14 +98,7 @@ async function injectWeeklyStat(goalEl: Element) {
     return;
   }
 
-  const weeklyProjsReviewed = getWeeklyProjectsReviewed();
-  const devlogText = `You've reviewed ${count} devlog${count === 1 ? "" : "s"} this week!`;
-  const projsText =
-    weeklyProjsReviewed > 0
-      ? ` That's over ${weeklyProjsReviewed} project${weeklyProjsReviewed === 1 ? "" : "s"}!`
-      : "";
-
-     span.textContent = `${devlogText}${projsText}`;
+  span.textContent = `You've reviewed ${count} devlog${count === 1 ? "" : "s"} this week!`;
 }
 
 export function handleWeeklyStat(cfg: Cfg) {

@@ -207,6 +207,47 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === "ext_fetch") {
+    const url: string = msg.url;
+    const headers: Record<string, string> = msg.headers || {};
+    const expect: string = msg.expect || "json";
+    const timeoutMs: number = typeof msg.timeout === "number" ? msg.timeout : 15000;
+    fetch(url, {
+      method: "GET",
+      credentials: "omit",
+      headers,
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+      .then(async (r) => {
+        const ct = r.headers.get("content-type") ?? "";
+        const respHeaders: Record<string, string> = {};
+        r.headers.forEach((v, k) => (respHeaders[k] = v));
+        if (!r.ok) {
+          const body = await r.text().catch(() => "");
+          sendResponse({ ok: false, status: r.status, statusText: r.statusText, headers: respHeaders, body, contentType: ct });
+          return;
+        }
+        if (expect === "json") {
+          const text = await r.text();
+          let data: unknown = null;
+          try { data = JSON.parse(text); } catch { sendResponse({ ok: false, status: r.status, error: "invalid json", text, contentType: ct, headers: respHeaders }); return; }
+          sendResponse({ ok: true, data, headers: respHeaders, contentType: ct, status: r.status });
+          return;
+        }
+        const text = await r.text();
+        if (expect === "html" && !ct.includes("text/html")) {
+          sendResponse({ ok: false, status: r.status, error: "not html", contentType: ct, headers: respHeaders, text });
+          return;
+        }
+        sendResponse({ ok: true, text, contentType: ct, headers: respHeaders, status: r.status });
+      })
+      .catch((err) => {
+        console.warn("[Exterstellar | ext_fetch] fetch failed:", err);
+        sendResponse({ ok: false, error: String(err) });
+      });
+    return true;
+  }
+
   if (msg?.type !== "ext_lp_fetch") return false;
 
   const url: string = msg.url;

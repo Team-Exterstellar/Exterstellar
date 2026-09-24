@@ -423,9 +423,16 @@ function resetLinkHealthChecks(table: Element) {
 }
 
 export function handleLinkHealthCheck(cfg: Cfg) {
-  void sweepPendingClaims();
+  if (cfg.linkHealthCheck === false || cfg.linkHealthCheck === "false") {
+    if (rateLimitRetryTimer !== null) {
+      clearTimeout(rateLimitRetryTimer);
+      rateLimitRetryTimer = null;
+    }
+    lastLinkHealthCheckCfg = null;
+    return;
+  }
 
-  if (cfg.linkHealthCheck === false || cfg.linkHealthCheck === "false") return;
+  void sweepPendingClaims();
 
   const table = document.querySelector(".ysws-queue__table-container table");
   if (!table) return;
