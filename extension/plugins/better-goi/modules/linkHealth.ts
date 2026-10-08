@@ -198,9 +198,24 @@ function restoreBrokenLink(link: HTMLAnchorElement) {
   }
 }
 
+const LINK_HEALTH_CACHE_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+
 function extractProjectId(url: string): string | null {
-  const match = url.match(/\/admin\/projects\/(\d+)/);
+  const match = url.match(/\/projects\/(\d+)/);
   return match?.[1] ?? null;
+}
+
+export function stripAdminPrefix(url: string): string {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.pathname.startsWith("/admin/")) {
+      parsed.pathname = parsed.pathname.replace(/^\/admin/, "");
+      return parsed.toString();
+    }
+    return url;
+  } catch {
+    return url.replace("/admin/", "/");
+  }
 }
 
 interface LinkHealthCacheEntry {
@@ -229,7 +244,7 @@ function saveLinkHealthCache(cache: Record<string, LinkHealthCacheEntry>) {
 function getCachedLinkHealth(key: string): LinkHealthCacheEntry | null {
   const entry = loadLinkHealthCache()[key];
   if (!entry) return null;
-  if (Date.now() - entry.checkedAt > 24 * 60 * 60 * 1000) return null;
+  if (Date.now() - entry.checkedAt > LINK_HEALTH_CACHE_TTL_MS) return null;
   return entry;
 }
 
@@ -250,7 +265,7 @@ function pruneLinkHealthCache(currentKeys: Set<string>) {
 
   for (const key of Object.keys(cache)) {
     const entry = cache[key]!;
-    const expired = now - entry.checkedAt > 24 * 60 * 60 * 1000;
+    const expired = now - entry.checkedAt > LINK_HEALTH_CACHE_TTL_MS;
     const gone = !currentKeys.has(key);
     if (expired || (currentKeys.size > 0 && gone)) {
       delete cache[key];
@@ -272,7 +287,8 @@ async function checkRowLinkHealth(row: HTMLTableRowElement) {
   const actionLink = getActionLink(row);
   if (!actionLink) return;
 
-  const cacheKey = projectLink.href;
+  const checkUrl = stripAdminPrefix(projectLink.href);
+  const cacheKey = extractProjectId(checkUrl) ?? extractProjectId(projectLink.href) ?? checkUrl;
 
   const cached = getCachedLinkHealth(cacheKey);
   if (cached) {
@@ -283,7 +299,7 @@ async function checkRowLinkHealth(row: HTMLTableRowElement) {
     return;
   }
 
-  const result = await probeLinkStatus(projectLink.href);
+  const result = await probeLinkStatus(checkUrl);
 
   if (result?.status === 429) {
     row.removeAttribute("data-exterstellar-link-health-checked");
@@ -364,7 +380,9 @@ export function handleLinkHealthCheck(cfg: Cfg) {
     rows
       .map((row) => {
         const link = getProjectLink(row);
-        return link?.href ?? null;
+        if (!link?.href) return null;
+        const checkUrl = stripAdminPrefix(link.href);
+        return extractProjectId(checkUrl) ?? extractProjectId(link.href) ?? checkUrl;
       })
       .filter((href): href is string => !!href),
   );
