@@ -105,20 +105,22 @@ function parseGiteaRepo(repoUrl: string): { origin: string; owner: string; repo:
   try {
     const u = new URL(repoUrl);
     const origin = u.origin;
-    const m = repoUrl.match(/\/([^/]+)\/([^/#.]+?)(?:\.git)?\/?$/);
+    const m = repoUrl.match(/\/([^/]+)\/([^/#?]+?)\/?$/);
     if (!m) return null;
-    const [, owner, repo] = m;
+    const [, owner, repoName] = m;
+    const repo = repoName?.replace(/\.git$/, "");
     if (!owner || !repo) return null;
     return { origin, owner, repo };
   } catch { return null; }
 }
 
 function parseGithubRepo(repoUrl: string): { owner: string; repo: string } | null {
-  const m = repoUrl.match(/github\.com\/([^/]+)\/([^/#.]+)/);
+  const m = repoUrl.match(/github\.com\/([^/]+)\/([^/#?]+)/);
   if (!m) return null;
-  const [, owner, repo] = m;
+  const [, owner, repoName] = m;
+  const repo = repoName?.replace(/\.git$/, "");
   if (!owner || !repo) return null;
-  return { owner, repo: repo.replace(/\.git$/,"") };
+  return { owner, repo };
 }
 
 function parseGitlabRepo(repoUrl: string): { projectPath: string } | null {
@@ -130,11 +132,12 @@ function parseGitlabRepo(repoUrl: string): { projectPath: string } | null {
 }
 
 function parseCodebergRepo(repoUrl: string): { owner: string; repo: string } | null {
-  const m = repoUrl.match(/codeberg\.org\/([^/]+)\/([^/#.]+)/);
+  const m = repoUrl.match(/codeberg\.org\/([^/]+)\/([^/#?]+)/);
   if (!m) return null;
-  const [, owner, repo] = m;
+  const [, owner, repoName] = m;
+  const repo = repoName?.replace(/\.git$/, "");
   if (!owner || !repo) return null;
-  return { owner, repo: repo.replace(/\.git$/,"") };
+  return { owner, repo };
 }
 
 // ---------- per-platform diff fetch (public-first, optional token) ----------
@@ -302,8 +305,8 @@ async function fetchTangledDiff(repoUrl: string, sha: string): Promise<CommitDif
   try {
     const u = new URL(repoUrl);
     origin = u.origin;
-    const m = repoUrl.match(/tangled\.(?:sh|org)\/([^/]+)\/([^/#.]+)/);
-    if (m) { owner = m[1] ?? ""; repo = m[2] ?? ""; }
+    const m = repoUrl.match(/tangled\.(?:sh|org)\/([^/]+)\/([^/#?]+)/);
+    if (m) { owner = m[1] ?? ""; repo = (m[2] ?? "").replace(/\.git$/,""); }
     else {
       const parts = u.pathname.split("/").filter(Boolean);
       owner = parts[0] ?? ""; repo = (parts[1] ?? "").replace(/\.git$/,"");

@@ -38,6 +38,22 @@ function getProjectLink(row: HTMLTableRowElement): HTMLAnchorElement | null {
   return projectCell?.querySelector<HTMLAnchorElement>("a") ?? null;
 }
 
+function getReviewIdFromRow(row: HTMLTableRowElement): string | null {
+  const actionHref = getActionLink(row)?.getAttribute("href") ?? "";
+  const fromAction = actionHref.match(/\/certification\/review\/(\d+)/)?.[1];
+  if (fromAction) return fromAction;
+
+  const idCell = row.querySelector<HTMLTableCellElement>('td[data-label="ID"]');
+  return idCell?.textContent?.trim().match(/#?(\d+)/)?.[1] ?? null;
+}
+
+function isRowMarkedBroken(row: HTMLTableRowElement): boolean {
+  if (row.hasAttribute("data-exterstellar-count-subtracted")) return true;
+  return !!getActionLink(row)?.classList.contains(
+    "exterstellar-better-goi-broken-link",
+  );
+}
+
 function flagRowBroken(row: HTMLTableRowElement): void {
   if (row.hasAttribute("data-exterstellar-count-subtracted")) return;
   row.setAttribute("data-exterstellar-count-subtracted", "1");
@@ -351,8 +367,19 @@ function resetLinkHealthChecks(table: Element) {
   }
 }
 
+export function isLinkHealthEnabled(cfg: Cfg): boolean {
+  return cfg.linkHealthCheck !== false && cfg.linkHealthCheck !== "false";
+}
+
+export function shouldSkipBrokenInFlow(cfg: Cfg): boolean {
+  if (!isLinkHealthEnabled(cfg)) return false;
+  return (
+    cfg.linkHealthFlowSkip !== false && cfg.linkHealthFlowSkip !== "false"
+  );
+}
+
 export function handleLinkHealthCheck(cfg: Cfg) {
-  if (cfg.linkHealthCheck === false || cfg.linkHealthCheck === "false") {
+  if (!isLinkHealthEnabled(cfg)) {
     if (rateLimitRetryTimer !== null) {
       clearTimeout(rateLimitRetryTimer);
       rateLimitRetryTimer = null;
@@ -395,4 +422,286 @@ export function handleLinkHealthCheck(cfg: Cfg) {
   );
   if (!pending.length) return;
   void runWithConcurrency(pending, 2, checkRowLinkHealth);
+}
+
+const FLOW_PRECHECK_ROW_LIMIT = 30;
+const FLOW_PRECHECK_WAIT_MS = 6000;
+const AUTO_SKIP_LOG_KEY = "exterstellar-better-goi-flow-auto-skips";
+const AUTO_SKIP_WINDOW_MS = 10 * 60 * 1000;
+const AUTO_SKIP_LIMIT = 20;
+
+let flowStartForm: HTMLFormElement | null = null;
+let flowStartAbort: AbortController | null = null;
+let flowStartCfg: Cfg | null = null;
+
+function getQueueRows(): HTMLTableRowElement[] {
+  const table = document.querySelector(".ysws-queue__table-container table");
+  if (!table) return [];
+  return Array.from(
+    table.querySelectorAll("tbody tr"),
+  ) as HTMLTableRowElement[];
+}
+
+function setFormSkipIds(form: HTMLFormElement, ids: string[]) {
+  if (!ids.length) return;
+
+  const existing = form.querySelector<HTMLInputElement>('input[name="skip"]');
+  const merged = Array.from(
+    new Set([...(existing?.value ?? "").split(",").filter(Boolean), ...ids]),
+  ).slice(-100);
+
+  if (existing) {
+    existing.value = merged.join(",");
+    return;
+  }
+
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "skip";
+  input.value = merged.join(",");
+  form.appendChild(input);
+}
+
+export function teardownFlowStartLinkCheck(): void {
+  flowStartAbort?.abort();
+  flowStartAbort = null;
+  flowStartForm = null;
+  flowStartCfg = null;
+}
+
+export function handleFlowStartLinkCheck(cfg: Cfg) {
+  flowStartCfg = cfg;
+
+  if (!shouldSkipBrokenInFlow(cfg)) {
+    teardownFlowStartLinkCheck();
+    return;
+  }
+
+  const form = document.querySelector<HTMLFormElement>(
+    "form.ysws-queue__flow-form",
+  );
+  if (!form) return;
+  if (flowStartForm === form && flowStartAbort) return;
+
+  teardownFlowStartLinkCheck();
+  flowStartCfg = cfg;
+
+  const controller = new AbortController();
+  flowStartForm = form;
+  flowStartAbort = controller;
+
+  form.addEventListener(
+    "submit",
+    (event) => {
+      const activeCfg = flowStartCfg;
+      if (!activeCfg || !shouldSkipBrokenInFlow(activeCfg)) return;
+      if (form.dataset.exterstellarFlowSubmitting === "1") return;
+      form.dataset.exterstellarFlowSubmitting = "1";
+
+      event.preventDefault();
+
+      const button = form.querySelector<HTMLButtonElement>(
+        'button[type="submit"]',
+      );
+      const originalText = button?.textContent ?? "";
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Checking links…";
+      }
+
+      void (async () => {
+        try {
+          const rows = getQueueRows().slice(0, FLOW_PRECHECK_ROW_LIMIT);
+          const pending = rows.filter(
+            (row) =>
+              !row.hasAttribute("data-exterstellar-link-health-checked"),
+          );
+
+          if (pending.length) {
+            await Promise.race([
+              runWithConcurrency(pending, 2, checkRowLinkHealth),
+              sleep(FLOW_PRECHECK_WAIT_MS),
+            ]);
+          }
+
+          const brokenIds = rows
+            .filter(isRowMarkedBroken)
+            .map(getReviewIdFromRow)
+            .filter((id): id is string => !!id);
+
+          setFormSkipIds(form, brokenIds);
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = originalText;
+          }
+          form.submit();
+        }
+      })();
+    },
+    { signal: controller.signal },
+  );
+}
+
+function isReviewFlowErrorPage(): boolean {
+  const code = document.querySelector(".error-page__code")?.textContent?.trim();
+  if (code === "500") return true;
+
+  const title = document.title.toLowerCase();
+  if (title.includes("something went wrong")) return true;
+  if (title.includes("exception caught")) return true;
+  return /\bin\s+\w+controller#/.test(title);
+}
+
+function getCurrentReviewId(): string | null {
+  return (
+    window.location.pathname.match(
+      /^\/admin\/certification\/review\/(\d+)\/?$/,
+    )?.[1] ?? null
+  );
+}
+
+function noteAutoSkip(reviewId: string): boolean {
+  try {
+    const now = Date.now();
+    const raw = sessionStorage.getItem(AUTO_SKIP_LOG_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    const recent: Array<{ id: string; at: number }> = Array.isArray(parsed)
+      ? parsed.filter(
+          (entry): entry is { id: string; at: number } =>
+            !!entry &&
+            typeof entry === "object" &&
+            typeof (entry as { id?: unknown }).id === "string" &&
+            typeof (entry as { at?: unknown }).at === "number" &&
+            now - (entry as { at: number }).at < AUTO_SKIP_WINDOW_MS,
+        )
+      : [];
+
+    if (recent.some((entry) => entry.id === reviewId)) return false;
+    if (recent.length >= AUTO_SKIP_LIMIT) return false;
+
+    recent.push({ id: reviewId, at: now });
+    sessionStorage.setItem(AUTO_SKIP_LOG_KEY, JSON.stringify(recent));
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+function showFlowNotice(message: string) {
+  if (document.getElementById("exterstellar-better-goi-flow-skip-notice")) {
+    return;
+  }
+
+  const notice = document.createElement("div");
+  notice.id = "exterstellar-better-goi-flow-skip-notice";
+  notice.style.cssText = [
+    "position:fixed",
+    "right:20px",
+    "bottom:20px",
+    "z-index:2147483647",
+    "max-width:320px",
+    "padding:12px 14px",
+    "border:1px solid #a3a3a3",
+    "border-radius:10px",
+    "background:#18181b",
+    "color:#f4f4f5",
+    "font:13px/1.45 system-ui,sans-serif",
+    "box-shadow:0 8px 24px rgba(0,0,0,.35)",
+  ].join(";");
+  notice.textContent = message;
+  document.body.appendChild(notice);
+}
+
+function appendHidden(form: HTMLFormElement, name: string, value: string) {
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = name;
+  input.value = value;
+  form.appendChild(input);
+}
+
+async function unclaimReview(reviewId: string, token: string): Promise<void> {
+  try {
+    await fetch(`/admin/certification/review/${reviewId}/claim`, {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "manual",
+      keepalive: true,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        _method: "delete",
+        authenticity_token: token,
+      }).toString(),
+    });
+  } catch {}
+}
+
+export function handleFlowErrorRecovery(cfg: Cfg) {
+  if (!shouldSkipBrokenInFlow(cfg)) return;
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => handleFlowErrorRecovery(cfg),
+      { once: true },
+    );
+    return;
+  }
+
+  if (
+    document.documentElement.hasAttribute(
+      "data-exterstellar-flow-error-handled",
+    )
+  ) {
+    return;
+  }
+  if (!isReviewFlowErrorPage()) return;
+  if (new URLSearchParams(window.location.search).get("flow") !== "1") return;
+
+  const reviewId = getCurrentReviewId();
+  if (!reviewId) return;
+
+  if (!noteAutoSkip(reviewId)) {
+    document.documentElement.setAttribute(
+      "data-exterstellar-flow-error-handled",
+      "1",
+    );
+    showFlowNotice(
+      `Review #${reviewId} keeps failing to load. Auto-skip stopped to avoid a loop.`,
+    );
+    return;
+  }
+
+  const token = document.querySelector<HTMLMetaElement>(
+    'meta[name="csrf-token"]',
+  )?.content;
+  if (!token) return;
+
+  document.documentElement.setAttribute(
+    "data-exterstellar-flow-error-handled",
+    "1",
+  );
+  showFlowNotice(
+    `Review #${reviewId} failed to load. Unclaiming and skipping to the next review…`,
+  );
+
+  const params = new URLSearchParams(window.location.search);
+  const form = document.createElement("form");
+  form.method = "post";
+  form.action = `/admin/certification/review/${reviewId}/skip`;
+  form.style.display = "none";
+  appendHidden(form, "authenticity_token", token);
+  appendHidden(form, "flow", "1");
+  appendHidden(form, "step", params.get("step") ?? "1");
+  const skip = params.get("skip");
+  if (skip) appendHidden(form, "skip", skip);
+  document.body.appendChild(form);
+
+  window.setTimeout(() => {
+    void (async () => {
+      await Promise.race([unclaimReview(reviewId, token), sleep(2500)]);
+      form.submit();
+    })();
+  }, 500);
 }

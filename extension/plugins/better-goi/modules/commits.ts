@@ -45,10 +45,11 @@ async function getGithubCommits(
   repoUrl: string,
   since?: Date,
 ): Promise<Commit[]> {
-  const match = repoUrl.match(/github\.com\/([^/]+)\/([^/#.]+)/);
+  const match = repoUrl.match(/github\.com\/([^/]+)\/([^/#?]+)/);
   if (!match) return [];
 
-  const [, owner, repo] = match;
+  const [, owner, repoName] = match;
+  const repo = repoName?.replace(/\.git$/, "");
   if (!owner || !repo) return [];
 
   const commits: any[] = [];
@@ -151,10 +152,11 @@ async function getCodebergCommits(
   repoUrl: string,
   since?: Date,
 ): Promise<Commit[]> {
-  const match = repoUrl.match(/codeberg\.org\/([^/]+)\/([^/#.]+)/);
+  const match = repoUrl.match(/codeberg\.org\/([^/]+)\/([^/#?]+)/);
   if (!match) return [];
 
-  const [, owner, repo] = match;
+  const [, owner, repoName] = match;
+  const repo = repoName?.replace(/\.git$/, "");
   if (!owner || !repo) return [];
 
   return getGiteaLikeCommits("https://codeberg.org", owner, repo, since);
@@ -164,10 +166,11 @@ async function getTangledCommits(
   repoUrl: string,
   since?: Date,
 ): Promise<Commit[]> {
-  const match = repoUrl.match(/tangled\.(?:sh|org)\/([^/]+)\/([^/#.]+)/);
+  const match = repoUrl.match(/tangled\.(?:sh|org)\/([^/]+)\/([^/#?]+)/);
   if (!match) return [];
 
-  const [, owner, repo] = match;
+  const [, owner, repoName] = match;
+  const repo = repoName?.replace(/\.git$/, "");
   if (!owner || !repo) return [];
 
   const origin = new URL(repoUrl).origin;
@@ -279,10 +282,11 @@ async function getSelfHostedGiteaLikeCommits(
   const origin = await detectGiteaLikeOrigin(repoUrl);
   if (!origin) return [];
 
-  const match = repoUrl.match(/\/([^/]+)\/([^/#.]+?)(?:\.git)?\/?$/);
+  const match = repoUrl.match(/\/([^/]+)\/([^/#?]+?)\/?$/);
   if (!match) return [];
 
-  const [, owner, repo] = match;
+  const [, owner, repoName] = match;
+  const repo = repoName?.replace(/\.git$/, "");
   if (!owner || !repo) return [];
 
   return getGiteaLikeCommits(origin, owner, repo, since);

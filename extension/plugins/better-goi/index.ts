@@ -18,7 +18,12 @@ import {
   handleJustificationAutocomplete,
   teardownJustificationAutocomplete,
 } from "./modules/autoGoipletion";
-import { handleLinkHealthCheck } from "./modules/linkHealth";
+import {
+  handleFlowErrorRecovery,
+  handleFlowStartLinkCheck,
+  handleLinkHealthCheck,
+  teardownFlowStartLinkCheck,
+} from "./modules/linkHealth";
 import {
   handleSidebarToggleHotkey,
   teardownSidebarHotkey,
@@ -222,6 +227,15 @@ Exterstellar.register({
           label: "Check dash queue links for errors and disable broken ones",
           type: "checkbox",
           default: false,
+          sub: [
+            {
+              key: "linkHealthFlowSkip",
+              label:
+                "Skip broken-link reviews in the faster review flow (also auto-advances past reviews that error)",
+              type: "checkbox",
+              default: true,
+            },
+          ],
         },
       ],
     },
@@ -280,11 +294,13 @@ Exterstellar.register({
       );
 
     const onTurboUpdate = () => {
+      handleFlowErrorRecovery(cfg);
       if (isQueueListPage()) {
         handleQueuePage(cfg);
         handleChartControls(cfg);
         handleRandomProject(cfg);
         handleLinkHealthCheck(cfg);
+        handleFlowStartLinkCheck(cfg);
         handleLeaderboardSorting(cfg);
         handleWeeklyLeaderboardColumn(cfg).then(() => {
           finalizeLeaderboardSortRestore(cfg);
@@ -313,6 +329,7 @@ Exterstellar.register({
 
     return function cleanup() {
       teardownViewer();
+      teardownFlowStartLinkCheck();
       style?.remove();
       document.removeEventListener("turbo:load", onTurboUpdate);
       document.removeEventListener("turbo:frame-load", onTurboUpdate);
